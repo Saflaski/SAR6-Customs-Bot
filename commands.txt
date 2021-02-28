@@ -1,0 +1,11 @@
+`.info` -> Shows your own info
+`.info <@discordID or Uplay ID>` :
+\`-> Shows info of user with given @DiscordID/Uplay ID
+\`-> Remember to tag the user if you use @DiscordID to search
+`.lb` : 
+\`--> Shows Leaderboard
+\`--> Page-flipping can only be done by the user who used .lb
+`.register <Uplay ID>` -> Register yourself
+`.updateuplay <New Uplay ID>` -> Update your uplay account ID
+
+*Fields in <> are to be entered by the user*
