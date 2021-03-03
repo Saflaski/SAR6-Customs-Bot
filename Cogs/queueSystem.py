@@ -12,6 +12,7 @@ from itertools import combinations
 myclient = pymongo.MongoClient("mongodb+srv://SFSI1:JJJQb7a9hHNbiYw@cluster0.9oihh.mongodb.net/TM_DB?retryWrites=true&w=majority")
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
+matchesCol = db["matches_col"]
 
 #Global Variables
 embedSideColor = 0x2425A2
@@ -27,15 +28,28 @@ GQL = []
 generatedLobby = {}
 
 #Players In Ongoing Matches
-PIOM = []
+PIOM = [187236546431287296]
 
-#Dictionray of generated matches ()
+#Generated Voice Channels
+GVC = []
 
 #Global Variables
 matchGenerationChannel = 813695785928884267     #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
+myGuildID = 813695785928884264                  #Used later to get myGuild
+myGuild = None                                  #Guild for which Bot is run
+voiceChannelCategoryID = 816634104362827786     #Used later to get voiceChannelCategory
+voiceChannelCategory = None                     #Category into which to make VCs
 
 
+#Points won in Matches
+pOTWin = 20
+pOTLoss = 0
+pNonOTWin = 30
+pNonOTLoss = -30
+
+#Unicode Reaction Emojis
+check_mark = '\u2705'
 
 """
 Queue system v0.1
@@ -59,8 +73,18 @@ class QueueSystem(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print('Cog: "queueSystem" is ready.')
-        self.printQueue.start()
+
+        #Loops every 1 second
+        self.findPossibleLobby.start()
         self.findGeneratedLobby.start()
+
+
+        #Set guild and VC Category
+        global myGuild
+        global voiceChannelCategory
+        myGuild = self.client.get_guild(813695785928884264)
+        voiceChannelCategory = discord.utils.get(myGuild.categories, id = voiceChannelCategoryID)
+
 
     @commands.command(aliases = ["joinq","join"])
     async def joinQueue(self, ctx, member: discord.Member):
@@ -69,20 +93,53 @@ class QueueSystem(commands.Cog):
 
         #Adds user to the queue
         discID = member.id
-        if discID not in GQL:
-            if discID not in PIOM:
+        queueEmbed = discord.Embed(color = embedSideColor)
+
+        if discID not in GQL:               #Checks if user is in Global Queue
+            if discID not in PIOM:          #Checks if user is in Match
                 GQL.append(discID)
                 print(f"{member} has joined the Global Queue")
+                queueEmbed.add_field(name = f"Added to Global Queue ({len(GQL)}/{playersPerLobby})" , value = f"<@{member.id}>", inline = True)
+                await ctx.send(embed = queueEmbed)
             else:
-                await ctx.send("You are already in a match")
+                queueEmbed.add_field(name = f"You are already in a match", value = "** **")
+                await ctx.send(embed = queueEmbed)
         else:
-            await ctx.send("You are already in Global Queue")
+            queueEmbed.add_field(name = f"You are already in the Global Queue", value = "** **")
+            await ctx.send(embed = queueEmbed)
 
 
     @commands.command(aliases = ["showq", "queue"])
     async def showQueue(self, ctx):
+        global GQL
+        tempGQL = GQL.copy()    #copies current state of GQL
+        queryList = []          #List for MongoDB Query
+        embedDictionary = {}    #Dict for Embed Message
 
-        print(GQL)
+        if len(tempGQL) != 0:
+            for playerDiscID in tempGQL:
+                playerDic = {"discID" : playerDiscID}
+                queryList.append(playerDic)
+
+            playerDocs = dbCol.find({"$or" : queryList})
+
+            for x in playerDocs:
+                embedDictionary[x["discID"]] = [ x["discName"] , x["ELO"]]
+
+            queueEmbed = discord.Embed(title = f"Global Queue ({len(embedDictionary)}/{playersPerLobby})",  color = embedSideColor)
+            queueString = ""
+            for member in embedDictionary:
+                queueString += f"<@{member}> : {embedDictionary[member][1]}\n"
+
+            queueEmbed.add_field(name = "Queue List:   " , value = queueString)
+            await ctx.send(embed = queueEmbed)
+
+        else:
+            queueEmbed = discord.Embed(color = embedSideColor)
+            queueEmbed.add_field(name = "Players in Queue: 0", value = "** **")
+            await ctx.send(embed = queueEmbed)
+
+
 
         """
         for member in GQL:
@@ -95,9 +152,151 @@ class QueueSystem(commands.Cog):
         global GQL
 
         #Removes user to the queue
-        discID = member.id
-        print(f"{member} has left the Global Queue")
-        GQL.remove(discID)
+        queueEmbed = discord.Embed(color = embedSideColor)
+        if member in GQL:
+            GQL.remove(member)
+            queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
+        else:
+            queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
+
+        await ctx.send(embed = queueEmbed)
+
+
+    @commands.command(name = "result")
+    async def addManualResult(self, ctx, score):
+        global PIOM
+        global GVC
+
+        #Checks if author is in an ongoing match
+
+        """
+        if ctx.author.id not in PIOM:
+            await ctx.send("You aren't in an ongoing match")
+            return None
+        """
+
+        teamResult = checkCorrectScore(score)
+
+        if "incorrect" in teamResult:
+            await ctx.send("Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`")
+            print(f"{ctx.author} tried invalid match result code")
+            return None
+
+        else:
+            print(f"{ctx.author} tried valid match result code")
+
+            matchDoc = matchesCol.find_one({"score" : "0-0", "matchList": ctx.author.id})
+            MID = ""    #Match ID
+            teamACaptain = ""
+            teamBCaptain = ""
+            teamAList = []
+            teamBList = []
+
+
+            if matchDoc is not None:
+                MID = matchDoc["MID"]
+                teamAList = matchDoc["matchList"][:playersPerLobby//2]
+                teamBList = matchDoc["matchList"][playersPerLobby//2:]
+                teamACaptain = teamAList[0]
+                teamBCaptain = teamBList[0]
+
+            else:
+                print("\n\nFATAL ERROR: Failure at addManualResult\n\n")
+
+            print(f"Sending Match Result Pending Panel:{MID} ")
+
+            if ctx.author.id in teamAList:
+                authorTeamList = teamAList
+                oppTeamList = teamBList
+            else:
+                authorTeamList = teamBList
+                oppTeamList = teamAList
+
+
+            authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
+            oppTeamCaptain = await self.client.fetch_user(oppTeamList[0])
+
+
+            #pendingMatchEmbed(winTeam, lossTeam, winCapt, lossCapt, isOT)
+            print(teamResult)
+            if "nonOT" in teamResult:
+                if teamResult[1] > teamResult[2]:
+                    #Author's team won in nonOT
+                    embed = pendingMatchEmbed(authorTeamList, oppTeamList, authorTeamCaptain, oppTeamCaptain, False)
+
+                elif teamResult[1] < teamResult[2]:
+                    #Author's team lost in nonOT
+                    embed = pendingMatchEmbed(oppTeamList, authorTeamList, oppTeamCaptain, authorTeamCaptain, False)
+
+
+            elif "OT" in teamResult:
+                if teamResult[1] > teamResult[2]:
+                    #Author's team won in OT
+                    embed = pendingMatchEmbed(authorTeamList, oppTeamList, authorTeamCaptain, oppTeamCaptain, True)
+
+                elif teamResult[1] < teamResult[2]:
+                    #Author's team lost in OT
+                    embed = pendingMatchEmbed(oppTeamList, authorTeamList, oppTeamCaptain, authorTeamCaptain, True)
+
+
+            sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
+            await sentEmbed.add_reaction(check_mark)
+
+            """
+            timeout = 90					#Waits for 30 seconds then removes page flipping function
+    		timeout_start = time.time()		#Starts keeping track of time
+
+
+
+    		def check(reaction, user):		#Checks if author (and not anybody else) is reacting with the correct arrows
+    			return user ==  and (str(reaction.emoji) == right_arrow or str(reaction.emoji) == left_arrow)
+
+    		while time.time() < timeout_start + timeout:		#While time limit has not elapsed
+
+    			try:
+    				#Watches out for author to add the proper reaction
+    				reaction, user = await self.client.wait_for('reaction_add', timeout = 5.0, check = check)
+
+    			except asyncio.TimeoutError:
+    				pass					#I forgot why I added timeout above and asyncio.TimeoutError here
+    				#print("Timed_Out")		#Useless
+
+
+    			if str(reaction.emoji) == right_arrow:
+    				print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")
+
+    				if currentSkip + limitPerPage >= maxLimit:			#Checks if it will go over limit i.e, the beginning
+    					pass											#Doesn't update page if it goes over limit
+    				else:
+    					currentSkip += limitPerPage						#Updates pages if it doesn't
+
+    				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")	#debugging
+    				await lb_msg.edit(embed = getEmbedObject())
+    				await lb_msg.remove_reaction(right_arrow, ctx.author)
+
+    			elif str(reaction.emoji) == left_arrow:
+
+    				if currentSkip - limitPerPage <= 0:					#Checks if it will go over limit i.e, beginning
+    					currentSkip = 0									#sets page to 1, ie skipped docs to 0, if it does
+    				else:
+    					currentSkip -= limitPerPage						#Updates page if it doesn't
+
+    				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")	#debugging
+    				await lb_msg.edit(embed = getEmbedObject())
+    				await lb_msg.remove_reaction(left_arrow, ctx.author)
+
+    			time.sleep(1)		#To avoid resource hogging (by looping continously)
+
+    		await lb_msg.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed
+            """
+
+
+    @addManualResult.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.result #-#` ,Eg.: `.result 7-5`")
+
+
 
 
     #### TESTING PURPOSES ####
@@ -111,7 +310,7 @@ class QueueSystem(commands.Cog):
     #### TESTING PURPOSES ####
 
     @tasks.loop(seconds = 1)
-    async def printQueue(self):
+    async def findPossibleLobby(self):
         global generatedLobby
         global playersPerLobby
 
@@ -131,52 +330,136 @@ class QueueSystem(commands.Cog):
             generatedLobby.update({matchID : playerList})
 
 
+    #Finds Generated Lobby and then generates teams, VCs and uploads generated match to DB
     @tasks.loop(seconds = 1)
     async def findGeneratedLobby(self):
         global generatedLobby
+        global GVC
 
         if len(generatedLobby) >= 0:
             for matchID in generatedLobby:
                 pList = generatedLobby[matchID]
                 del generatedLobby[matchID]
+
+                #Generate Teams and Upload Match Document
+                embeddedContent, teamA_VCName, teamB_VCName = generateTeams(matchID, pList)
+
+                #Send Generated Match Embed
                 channel = self.client.get_channel(matchGenerationChannel)
-                await channel.send(embed = generateTeams(matchID, pList))
+                await channel.send(embed = embeddedContent)
+
+                #Make Voice Channels with captains' names
+                VC_A = await myGuild.create_voice_channel(name = f"Team: {teamA_VCName}", category = voiceChannelCategory)
+                VC_B = await myGuild.create_voice_channel(name = f"Team: {teamB_VCName}", category = voiceChannelCategory)
+
+                #Add VCs to Global VC Dict: GVC
+                GVC.append(VC_A.id)
+                GVC.append(VC_B.id)
+
+                print(GVC)
 
                 break
 
-
-
 def generateMatchID():
+    """
+    Generates unique alphanumeric token of length 8
+    Total possible permutations: (26 + 26 + 10) ^ 8
+    Therefore, collision probability is at 50% only at 62^4
+
+    """
     alphabet = string.ascii_letters + string.digits
     matchID = ''.join(secrets.choice(alphabet) for i in range(8))
     return matchID
 
-def getMatchEmbed(matchID, playerInfo , dicTeamA, dicTeamB):
+def checkCorrectScore(score):
+    myRegex = re.compile("^(\d)-(\d)$")
+    rawList = myRegex.findall(score)
+    if len(rawList) == 0:
+        return "incorrect"
+    else:
+        selfScore, oppScore = rawList[0]
+        selfScore, oppScore = int(selfScore), int(oppScore)
+
+
+        nonOTcond = (selfScore == 7 and oppScore < 6) ^ (oppScore == 7 and selfScore < 6)
+        OTcond = (6 <= selfScore < 8 and oppScore == 8) ^ (6 <= oppScore < 8 and selfScore == 8)
+        if nonOTcond:
+            return "nonOT", selfScore, oppScore
+        elif OTcond:
+            return "OT", selfScore, oppScore
+        else:
+            return "incorrect"
+
+
+def pendingMatchEmbed(winTeam, lossTeam, winCapt, lossCapt, isOT):
+    #Recieves the winning team, losing team, their captains and whether it is OT
+
+    winTeamStr = ""
+    lossTeamStr = ""
+
+    if isOT:
+        awardedPoints = pOTWin
+        deductedPoints = pOTLoss
+    else:
+        awardedPoints = pNonOTWin
+        deductedPoints = pNonOTLoss
+
+    for player in winTeam:
+        winTeamStr += f"<@{player}> : + {awardedPoints}\n"
+
+    for player in lossTeam:
+        lossTeamStr += f"<@{player}> : - {abs(deductedPoints)}\n"
+
+
+    myEmbed = discord.Embed(title = "Match Result Pending", color = embedSideColor)
+    myEmbed.add_field(name = f"Team: {winCapt}", value = winTeamStr)
+    myEmbed.add_field(name = f"Team: {lossCapt}", value = lossTeamStr)
+    myEmbed.set_footer(text = f"Captains, react with {check_mark} to confirm")
+
+    return myEmbed
+
+
+#Get Embed Object to display after generating a match, called by generateTeams
+def getMatchEmbed(matchID, playerInfo , dicTeamA, dicTeamB, captainTeamA, captainTeamB):
 
     teamAstr = ""
     teamBstr = ""
 
+    #playerInfo is in the form: {discID = [discName, ELO, uplayIGN] , discID = ---}
+
+    #Generate Embed Body Text for each team
     for player in playerInfo:
         if player in dicTeamA:
             playerName = playerInfo[player][0]
             playerELO = playerInfo[player][1]
             playerUplayID = playerInfo[player][2]
             teamAstr += f"<@{player}> : {playerUplayID} : `{playerELO}` \n"
-
+            """
+            if player == captainTeamA:
+                teamAstr += f"C: <@{player}> : {playerUplayID} : `{playerELO}` \n"
+            else:
+                teamAstr += f"<@{player}> : {playerUplayID} : `{playerELO}` \n"
+            """
         elif player in dicTeamB:
             playerName = playerInfo[player][0]
             playerELO = playerInfo[player][1]
             playerUplayID = playerInfo[player][2]
             teamBstr += f"<@{player}> : {playerUplayID} : `{playerELO}` \n"
+            """
+            if player == captainTeamB:
+                teamBstr += f"C: <@{player}> : {playerUplayID} : `{playerELO}` \n"
+            else:
+                teamBstr += f"<@{player}> : {playerUplayID} : `{playerELO}` \n"
+            """
 
         else:
             print("FATAL ERROR: getMatchEmbed in queueSystem.py has FAILED")
 
-
+    #Generate Embed Object
     myEmbed = discord.Embed(title = "Match Generated", color = embedSideColor)
     myEmbed.add_field(name = "MatchID: ", value = matchID, inline = True)
-    myEmbed.add_field(name = "Team A:", value = teamAstr, inline = False)
-    myEmbed.add_field(name = "Team B:", value = teamBstr, inline = False)
+    myEmbed.add_field(name = f"Team A (Captain: {playerInfo[captainTeamA][0]}):", value = teamAstr, inline = False)
+    myEmbed.add_field(name = f"Team B (Captain: {playerInfo[captainTeamB][0]}):", value = teamBstr, inline = False)
     myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 
     return myEmbed
@@ -184,6 +467,7 @@ def getMatchEmbed(matchID, playerInfo , dicTeamA, dicTeamB):
 
 def getBalancedTeams(lobbyDic):
 
+    #List of ELOs on each team
     teamA = []
     teamB = []
 
@@ -191,38 +475,56 @@ def getBalancedTeams(lobbyDic):
 
     averageScore = 0
     playerELOList = []
-    for playerELO in lobbyDic:
-    	averageScore += lobbyDic[playerELO]
-    	playerELOList.append(lobbyDic[playerELO])
+    for playerID in lobbyDic:
+    	averageScore += lobbyDic[playerID]         #Summation of scores, will get averaged later
+    	playerELOList.append(lobbyDic[playerID])   #Appending ELOs of all players to a list
 
 
 
-    averageScore = averageScore//playersPerLobby
+    averageScore = averageScore//playersPerLobby    #Using mean average to calculate lobby's average ELO
 
+    """
+    Version 1.0 of balancing works by getting all combinations of 10 players' ELO
+    on one side (5 spots). Therefore, there will be a total of 10C5 or 10!/(5!5!)
+    or 252 combinations then finding the combination whose average mean ELO is
+    closest to the lobby's average ELO.
+
+    After assigning ELOs to lists TeamA and TeamB, it generates dictionaries where
+    it matches players with ELOs and returns them
+
+    """
+    #Getting all 252 combinations
     comb = list(combinations(playerELOList,playersPerSide))
 
+    #diff from Lobby average for first combination (only used for initial run of loop)
     diffFromAVG = abs(averageScore - sum(comb[0])//playersPerSide)
 
-    teamA = []
     for i in comb:
     	if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
-    		teamA = list(i)
-    		diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
 
+            #If diff higher than combination i's average, then assign to Team A
+            teamA = list(i)
+
+            #New Diff from AVG
+            diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
+
+    #Assign ELOs not in TeamA to TeamB
     teamB = playerELOList.copy()
     for i in teamA:
     	teamB.remove(i)
 
+    #Prepare dictionaries for returning
     dicTeamA = {}
     dicTeamB = {}
 
     mydic = lobbyDic.copy()
 
-    tempListA = []
+    #Match ELOs in TeamA to Players and assign them to dicTeamA
     for x in mydic:
     	if mydic[x] in teamA and len(dicTeamA) < playersPerSide:
     		dicTeamA.update({x:mydic[x]})
 
+    #Match remaining Players to TeamB
     for i in mydic:
     	if i not in dicTeamA:
     		dicTeamB.update({i:mydic[i]})
@@ -234,37 +536,68 @@ def getBalancedTeams(lobbyDic):
 
 def generateTeams(matchID, pList):
 
-
     #pList = [###############, ############, ##############, #####################, ##################, ###################]
-
-    #query a dictionary of users from database in the format of {discID : ELO}
-    #playerList = dbCol.find({"$or" : [{"discID" : "187236546431287296" }, {"discID" : "813695157232861194"}]})
 
     queryList = []          #List for MongoDB Query
     lobbyDic = {}           #This dictionary goes to the balancing function
     embedDictionary = {}    #This dictionary goes to the embedGenerator function
 
+    #Building queryList
     for playerDiscID in pList:
         playerDic = {"discID" : playerDiscID}
         queryList.append(playerDic)
 
     playerDocs = dbCol.find({"$or" : queryList})
+    #Example: playerDocs = dbCol.find({"$or" : [{"discID" : "187236546431287296" }, {"discID" : "813695157232861194"}, etc]})
 
+    #Building Dictionaries
     for x in playerDocs:
         lobbyDic[x["discID"]] = x["ELO"]
         embedDictionary[x["discID"]] = [ x["discName"] , x["ELO"], x["uplayIGN"] ]
 
-
+    #Get dict of balanced teams in the form {playerDiscID: ELO, cont.}
     dicTeamA, dicTeamB = getBalancedTeams(lobbyDic)
 
+    #Get captains of teams using highest ELO
+    captainTeamA = max(dicTeamA, key=dicTeamA.get)
+    captainTeamB = max(dicTeamB, key=dicTeamB.get)
+
+    #Logging
     print(f"Generated match with ID: {matchID}")
     print(f"Team A: {dicTeamA}")
     print(f"Team B: {dicTeamB}")
 
-    embeddedObject = getMatchEmbed(matchID, embedDictionary , dicTeamA, dicTeamB)
+    #Generate Embed Object
+    embeddedObject = getMatchEmbed(matchID, embedDictionary , dicTeamA, dicTeamB, captainTeamA, captainTeamB)
 
-    return embeddedObject
+    #Get discNames of team captain
+    teamAVC = embedDictionary[captainTeamA][0][:-5]
+    teamBVC = embedDictionary[captainTeamB][0][:-5]
 
+    ##dicTeamA does not have discNames
+
+    ##Upload Match to DB##
+
+    #Captains at position 0 for both lists
+    teamListA = [captainTeamA,]
+    teamListB = [captainTeamB,]
+
+    for member in dicTeamA:
+        #Avoid inserting captain twice
+        if member not in teamListA:
+            teamListA.append(member)
+    for member in dicTeamB:
+        #Avoid inserting captain twice
+        if member not in teamListB:
+            teamListB.append(member)
+    #Captains at position 0 and 5, with the players of teams A,B after 0 and 5 respectively
+    fullLobbyList = teamListA + teamListB
+
+    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList})
+    print(f"Uploaded Generated Match: {matchID}")
+
+
+    return (embeddedObject, teamAVC, teamBVC)
 
 
 def setup(client):
