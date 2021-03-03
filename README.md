@@ -7,7 +7,7 @@ TM-Bot is a Python based Discord bot to conduct Ten-Man competitions for the SA-
 MongoDB setup:\
 *Currently the server is setup to accept connections from anywhere*
 
-Python setup:
+Python setup (Python 3.6 and above):
 ```shell
 pip install pymongo
 pip install discord
