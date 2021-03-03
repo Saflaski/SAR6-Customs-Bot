@@ -1,13 +1,13 @@
-# TM-Bot
+# SAR6 Customs Bot
 <table><tr><td>
-TM-Bot is a Python based Discord bot to conduct Ten-Man competitions for the SA-R6 Community Discord Server. The bot registers users, performs matchmaking operations and keeps track of player scores. The bot is currently on version 0.1 as all the base features have not been added yet.
+SAR6 Customs Bot or SAR6C is a Python based Discord bot to conduct Customs or "Pug" style competitions for the SA-R6 Community Discord Server. The bot registers users, performs matchmaking operations and keeps track of player scores. The bot is currently on version 0.1 as all the base features have not been added yet.
 </td></tr><table>
 
 ### Prerequisites
 MongoDB setup:\
 *Currently the server is setup to accept connections from anywhere*
 
-Python setup:
+Python setup (Python 3.6 and above):
 ```shell
 pip install pymongo
 pip install discord
@@ -21,7 +21,7 @@ create a file named `TOKEN` without any file extensions. Insert your bot's token
 
 
 Starting the bot: \
-` ./bot.py ` from shell
+`python3 bot.py ` from shell
 
 ### Current Commands
 1. Player Usable commands:
