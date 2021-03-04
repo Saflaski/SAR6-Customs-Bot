@@ -155,8 +155,8 @@ class QueueSystem(commands.Cog):
 
         #Removes user to the queue
         queueEmbed = discord.Embed(color = embedSideColor)
-        if member in GQL:
-            GQL.remove(member)
+        if member.id in GQL:
+            GQL.remove(member.id)
             queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
         else:
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
@@ -174,6 +174,41 @@ class QueueSystem(commands.Cog):
             await ctx.send("You aren't in an ongoing match")
             return None
 
+        """
+        addManualResult will now go through five stages:
+
+                Preface:
+                Example Usage: .result 7-5
+                    Here, 7 is the author's team's score and 5 is the opponent team's score
+                    This is the set standard.
+
+            ->Check that the given score is in a correct format (including checking if it follows R6S standards)
+                ->R6S Standards: Eg. 7-0, 7-5, 8-7, 8-6 etc.
+                ->If correct, it will return scores (author's and opponents') and whether it went Overtime.
+
+            ->If correct, it will query the matches_col MongoDB collection for ongoing matches, ie, ones that are score: 0-0
+                Note: Each match document stores matches in the following way:
+                ->MID : Unique match ID
+                ->score: #-# where # is a number
+                ->matchList:    List of length {playersPerLobby}. If there are 10 players per lobby, then
+                                List[0] and List[5] are the captains of each team.
+                                The members of those team follow after their resp. captains at 1-4, 6-9
+
+            ->After the document is found, program will try to find which team author was in then assign variables in that way
+
+            ->It will then generate an embed object with the appropriate details
+                ->check_mark reaction will be added and bot will wait for captains of each team to react
+                    to it to basically confirm the match.
+
+            ->If captains confirm the match result by reacting, then bot will execute confirmMatch()
+                confirmMatch has 3 functions:
+                    ->Update the embed to reflect that the captains have confirmed the match result.
+                    ->Update database and increment/decrement points as per global variables to players
+                    ->Remove players from PIOM/Players In Ongoing Matches list.
+
+        """
+
+        #Check score validity
         teamResult = checkCorrectScore(score)
 
         if "incorrect" in teamResult:
@@ -183,6 +218,8 @@ class QueueSystem(commands.Cog):
 
         else:
             print(f"{ctx.author} tried valid match result code")
+
+            #Query DB for match document
 
             matchDoc = matchesCol.find_one({"score" : "0-0", "matchList": ctx.author.id})
             MID = ""    #Match ID
@@ -203,6 +240,8 @@ class QueueSystem(commands.Cog):
 
             print(f"Sending Match Result Pending Panel:{MID} ")
 
+            #Find which team author was in
+
             if ctx.author.id in teamAList:
                 authorTeamList = teamAList
                 oppTeamList = teamBList
@@ -210,9 +249,11 @@ class QueueSystem(commands.Cog):
                 authorTeamList = teamBList
                 oppTeamList = teamAList
 
-
+            #Fetch the member objects for each captain
             authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
             oppTeamCaptain = await self.client.fetch_user(oppTeamList[0])
+
+            #Prepare pending match embed
 
             winningTeam = []
             losingTeam = []
@@ -220,7 +261,10 @@ class QueueSystem(commands.Cog):
             lossCapt = ""
             isOT = False
 
-            #getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT)
+            #getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT, isPending)
+
+            #Assign winning team, losing team, their captains, and scores to appropriate variables
+
             print(teamResult)
             if "nonOT" in teamResult:
                 isOT = False
@@ -248,6 +292,8 @@ class QueueSystem(commands.Cog):
                     winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
 
             #print(winningTeam, losingTeam, winCapt, lossCapt, isOT)
+
+            #Send Pending match Embed for result verification
             try:
                 embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = True)
                 sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
@@ -255,8 +301,6 @@ class QueueSystem(commands.Cog):
             except Exception as e:
                 print(e)
 
-            timeout = 90
-            timeout_start = time.time()		#Starts keeping track of time
 
             async def confirmMatch():
 
@@ -317,15 +361,19 @@ class QueueSystem(commands.Cog):
 
                 print(f"Removed players from ongoing match list \nMatch Closed: {MID}")
 
-
+            #To check that captain has used correct reaction
             def check(myreaction, myuser):
 
                 userCond = (myuser == authorTeamCaptain) or (myuser == oppTeamCaptain)
                 reactionCond = str(myreaction.emoji) == check_mark
                 return (userCond and reactionCond)
 
+            #Captain confirmation boolean values for each team
             oppTeamConf = False
             authTeamConf = False
+
+            timeout = 90
+            timeout_start = time.time()		#Starts keeping track of time
 
             while time.time() < timeout_start + timeout:
                 try:
@@ -340,12 +388,13 @@ class QueueSystem(commands.Cog):
                     elif myuser == oppTeamCaptain:
                         oppTeamConf = True
 
-
+                #Check if captains have verified
                 if authTeamConf and oppTeamConf:
                     print("Match Result Confirmed")
-                    #Update Database
-                    #Get Embed
+
+                    #Get Embed, Update Databse, Remove from PIOM
                     await confirmMatch()
+                    #Clear reactions from result embed object
                     await sentEmbed.clear_reactions()
                     break
 
