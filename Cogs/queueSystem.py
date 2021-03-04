@@ -33,7 +33,8 @@ generatedLobby = {}
 PIOM = []
 
 #Generated Voice Channels
-GVC = []
+GVC = {}
+
 
 #Global Variables
 matchGenerationChannel = 813695785928884267     #Channel for Embeds to go to
@@ -307,8 +308,10 @@ class QueueSystem(commands.Cog):
                 #Update Embed Message
                 await sentEmbed.edit(embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = False))
 
+                global GVC
+
                 #Update Database
-                queryListWon = []          #List for MongoDB Query
+                queryListWon = []          #Lists for MongoDB Query
                 queryListLost = []
 
 
@@ -321,7 +324,6 @@ class QueueSystem(commands.Cog):
 
                 #Building queryList
 
-                print("Reached 1")
 
                 try:
                     for playerDiscID in winningTeam:
@@ -334,7 +336,6 @@ class QueueSystem(commands.Cog):
                     dbPlayerDic = {"discID" : playerDiscID}
                     queryListLost.append(dbPlayerDic)
 
-                print("Reached 2")
 
                 #For Won
                 try:
@@ -359,7 +360,21 @@ class QueueSystem(commands.Cog):
                     except ValueError:
                         print("FATAL ERROR: Value Error at confirmMatch")
 
-                print(f"Removed players from ongoing match list \nMatch Closed: {MID}")
+                #Remove VCs
+
+                try:
+                    VC1 = self.client.get_channel(GVC[winningTeam[0]])
+                    VC2 = self.client.get_channel(GVC[losingTeam[0]])
+                except Exception as e:
+                    print(e)
+
+                await VC1.delete()
+                await VC2.delete()
+
+                del GVC[winningTeam[0]]
+                del GVC[losingTeam[0]]
+
+                print(f"Removed players and VCs from ongoing list \nMatch Closed: {MID}")
 
             #To check that captain has used correct reaction
             def check(myreaction, myuser):
@@ -414,13 +429,12 @@ class QueueSystem(commands.Cog):
 
 
     #### TESTING PURPOSES ####
-    @commands.command(name = "queueTest")
+    @commands.command(name = "QSTest")
     async def queueTest(self, ctx):
 
-        playerList = dbCol.find({"$or" : [{"discID" : "187236546431287296" }, {"discID" : "813695157232861194"}]})
+        print(GVC)
 
-        for x in playerList:
-            print(x["discName"])
+
     #### TESTING PURPOSES ####
 
     @tasks.loop(seconds = 1)
@@ -456,7 +470,7 @@ class QueueSystem(commands.Cog):
                 del generatedLobby[matchID]
 
                 #Generate Teams and Upload Match Document
-                embeddedContent, teamA_VCName, teamB_VCName = generateTeams(matchID, pList)
+                embeddedContent, teamA_VCName, teamB_VCName, CapA_ID, CapB_ID = generateTeams(matchID, pList)
 
                 #Send Generated Match Embed
                 channel = self.client.get_channel(matchGenerationChannel)
@@ -467,10 +481,8 @@ class QueueSystem(commands.Cog):
                 VC_B = await myGuild.create_voice_channel(name = f"Team: {teamB_VCName}", category = voiceChannelCategory)
 
                 #Add VCs to Global VC Dict: GVC
-                GVC.append(VC_A.id)
-                GVC.append(VC_B.id)
-
-                print(GVC)
+                GVC[CapA_ID] = VC_A.id
+                GVC[CapB_ID] = VC_B.id
 
                 break
 
@@ -593,6 +605,8 @@ def getBalancedTeams(lobbyDic):
     teamA = []
     teamB = []
 
+
+
     playersPerSide = playersPerLobby // 2
 
     averageScore = 0
@@ -620,20 +634,24 @@ def getBalancedTeams(lobbyDic):
 
     #diff from Lobby average for first combination (only used for initial run of loop)
     diffFromAVG = abs(averageScore - sum(comb[0])//playersPerSide)
+    teamA = []
 
+    teamA = list(comb[0]).copy()
     for i in comb:
-    	if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
-
-            #If diff higher than combination i's average, then assign to Team A
-            teamA = list(i)
-
-            #New Diff from AVG
-            diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
+        try:
+            if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
+                #If diff higher than combination i's average, then assign to Team A
+                teamA = list(i).copy()
+                #New Diff from AVG
+                diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
+        except Exception as e:
+            print(e)
 
     #Assign ELOs not in TeamA to TeamB
     teamB = playerELOList.copy()
     for i in teamA:
     	teamB.remove(i)
+
 
     #Prepare dictionaries for returning
     dicTeamA = {}
@@ -646,11 +664,11 @@ def getBalancedTeams(lobbyDic):
     	if mydic[x] in teamA and len(dicTeamA) < playersPerSide:
     		dicTeamA.update({x:mydic[x]})
 
+
     #Match remaining Players to TeamB
     for i in mydic:
     	if i not in dicTeamA:
     		dicTeamB.update({i:mydic[i]})
-
 
 
     return dicTeamA, dicTeamB
@@ -680,11 +698,11 @@ def generateTeams(matchID, pList):
     #Get dict of balanced teams in the form {playerDiscID: ELO, cont.}
     dicTeamA, dicTeamB = getBalancedTeams(lobbyDic)
 
-    #print(dicTeamA)
 
     #Get captains of teams using highest ELO
     captainTeamA = max(dicTeamA, key=dicTeamA.get)
     captainTeamB = max(dicTeamB, key=dicTeamB.get)
+
 
     #Logging
     print(f"Generated match with ID: {matchID}")
@@ -697,6 +715,7 @@ def generateTeams(matchID, pList):
     #Get discNames of team captain
     teamAVC = embedDictionary[captainTeamA][0][:-5]
     teamBVC = embedDictionary[captainTeamB][0][:-5]
+
 
     ##dicTeamA does not have discNames
 
@@ -720,8 +739,8 @@ def generateTeams(matchID, pList):
     matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList})
     print(f"Uploaded Generated Match: {matchID}")
 
-
-    return (embeddedObject, teamAVC, teamBVC)
+    return (embeddedObject, teamAVC, teamBVC, captainTeamA, captainTeamB)
+    #return (embeddedObject, teamAVC, teamBVC)
 
 
 def setup(client):
