@@ -4,6 +4,8 @@ import datetime
 import re
 import secrets
 import string
+import time
+import asyncio
 from discord.ext import commands, tasks
 from itertools import combinations
 
@@ -28,7 +30,7 @@ GQL = []
 generatedLobby = {}
 
 #Players In Ongoing Matches
-PIOM = [187236546431287296]
+PIOM = []
 
 #Generated Voice Channels
 GVC = []
@@ -168,12 +170,9 @@ class QueueSystem(commands.Cog):
         global GVC
 
         #Checks if author is in an ongoing match
-
-        """
         if ctx.author.id not in PIOM:
             await ctx.send("You aren't in an ongoing match")
             return None
-        """
 
         teamResult = checkCorrectScore(score)
 
@@ -191,7 +190,6 @@ class QueueSystem(commands.Cog):
             teamBCaptain = ""
             teamAList = []
             teamBList = []
-
 
             if matchDoc is not None:
                 MID = matchDoc["MID"]
@@ -216,79 +214,146 @@ class QueueSystem(commands.Cog):
             authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
             oppTeamCaptain = await self.client.fetch_user(oppTeamList[0])
 
+            winningTeam = []
+            losingTeam = []
+            winCapt = ""
+            lossCapt = ""
+            isOT = False
 
-            #pendingMatchEmbed(winTeam, lossTeam, winCapt, lossCapt, isOT)
+            #getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT)
             print(teamResult)
             if "nonOT" in teamResult:
+                isOT = False
                 if teamResult[1] > teamResult[2]:
                     #Author's team won in nonOT
-                    embed = pendingMatchEmbed(authorTeamList, oppTeamList, authorTeamCaptain, oppTeamCaptain, False)
+                    winningTeam, losingTeam = authorTeamList, oppTeamList
+                    winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
 
                 elif teamResult[1] < teamResult[2]:
                     #Author's team lost in nonOT
-                    embed = pendingMatchEmbed(oppTeamList, authorTeamList, oppTeamCaptain, authorTeamCaptain, False)
+                    winningTeam, losingTeam = oppTeamList, authorTeamList
+                    winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
 
 
             elif "OT" in teamResult:
+                isOT = True
                 if teamResult[1] > teamResult[2]:
                     #Author's team won in OT
-                    embed = pendingMatchEmbed(authorTeamList, oppTeamList, authorTeamCaptain, oppTeamCaptain, True)
+                    winningTeam, losingTeam = authorTeamList, oppTeamList
+                    winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
 
                 elif teamResult[1] < teamResult[2]:
                     #Author's team lost in OT
-                    embed = pendingMatchEmbed(oppTeamList, authorTeamList, oppTeamCaptain, authorTeamCaptain, True)
+                    winningTeam, losingTeam = oppTeamList, authorTeamList
+                    winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
+
+            #print(winningTeam, losingTeam, winCapt, lossCapt, isOT)
+            try:
+                embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = True)
+                sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
+                await sentEmbed.add_reaction(check_mark)
+            except Exception as e:
+                print(e)
+
+            timeout = 90
+            timeout_start = time.time()		#Starts keeping track of time
+
+            async def confirmMatch():
+
+                #Update Embed Message
+                await sentEmbed.edit(embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = False))
+
+                #Update Database
+                queryListWon = []          #List for MongoDB Query
+                queryListLost = []
 
 
-            sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
-            await sentEmbed.add_reaction(check_mark)
+                if isOT:
+                    awardedPoints = pOTWin
+                    deductedPoints = pOTLoss
+                else:
+                    awardedPoints = pNonOTWin
+                    deductedPoints = pNonOTLoss
 
-            """
-            timeout = 90					#Waits for 30 seconds then removes page flipping function
-    		timeout_start = time.time()		#Starts keeping track of time
+                #Building queryList
+
+                print("Reached 1")
+
+                try:
+                    for playerDiscID in winningTeam:
+                        dbPlayerDic = {"discID" : playerDiscID}
+                        queryListWon.append(dbPlayerDic)
+                except Exception as e:
+                    print(e)
+
+                for playerDiscID in losingTeam:
+                    dbPlayerDic = {"discID" : playerDiscID}
+                    queryListLost.append(dbPlayerDic)
+
+                print("Reached 2")
+
+                #For Won
+                try:
+                    dbCol.update_many({"$or" : queryListWon}, { "$inc" : {"ELO" : awardedPoints}})
+                    print("Updated DB for winning team")
+                except Exception as e:
+                    print(e)
+
+                #For Lost
+                dbCol.update_many({"$or" : queryListLost}, { "$inc" : {"ELO" : deductedPoints}})
+                print("Updated DB for losing team")
+
+                #Update Match Score
+                match_score = str(f"{teamResult[1]}-{teamResult[2]}")
+                matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
+                print(f"Updated DB for score: {match_score}")
+
+                #Remove Players from PIOM
+                for givenPlayer in (winningTeam + losingTeam):
+                    try:
+                        PIOM.remove(givenPlayer)
+                    except ValueError:
+                        print("FATAL ERROR: Value Error at confirmMatch")
+
+                print(f"Removed players from ongoing match list \nMatch Closed: {MID}")
 
 
+            def check(myreaction, myuser):
 
-    		def check(reaction, user):		#Checks if author (and not anybody else) is reacting with the correct arrows
-    			return user ==  and (str(reaction.emoji) == right_arrow or str(reaction.emoji) == left_arrow)
+                userCond = (myuser == authorTeamCaptain) or (myuser == oppTeamCaptain)
+                reactionCond = str(myreaction.emoji) == check_mark
+                return (userCond and reactionCond)
 
-    		while time.time() < timeout_start + timeout:		#While time limit has not elapsed
+            oppTeamConf = False
+            authTeamConf = False
 
-    			try:
-    				#Watches out for author to add the proper reaction
-    				reaction, user = await self.client.wait_for('reaction_add', timeout = 5.0, check = check)
+            while time.time() < timeout_start + timeout:
+                try:
+                    myreaction, myuser = await self.client.wait_for('reaction_add', check = check)
+                except Exception as e:
+                    print(e)
+                #print(f"{myuser} did {myreaction}")
 
-    			except asyncio.TimeoutError:
-    				pass					#I forgot why I added timeout above and asyncio.TimeoutError here
-    				#print("Timed_Out")		#Useless
+                if check(myreaction, myuser):
+                    if myuser == authorTeamCaptain:
+                        authTeamConf = True
+                    elif myuser == oppTeamCaptain:
+                        oppTeamConf = True
 
 
-    			if str(reaction.emoji) == right_arrow:
-    				print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")
+                if authTeamConf and oppTeamConf:
+                    print("Match Result Confirmed")
+                    #Update Database
+                    #Get Embed
+                    await confirmMatch()
+                    await sentEmbed.clear_reactions()
+                    break
 
-    				if currentSkip + limitPerPage >= maxLimit:			#Checks if it will go over limit i.e, the beginning
-    					pass											#Doesn't update page if it goes over limit
-    				else:
-    					currentSkip += limitPerPage						#Updates pages if it doesn't
 
-    				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")	#debugging
-    				await lb_msg.edit(embed = getEmbedObject())
-    				await lb_msg.remove_reaction(right_arrow, ctx.author)
+                time.sleep(1)		#To avoid resource hogging (by looping continously)
 
-    			elif str(reaction.emoji) == left_arrow:
+            await sentEmbed.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed
 
-    				if currentSkip - limitPerPage <= 0:					#Checks if it will go over limit i.e, beginning
-    					currentSkip = 0									#sets page to 1, ie skipped docs to 0, if it does
-    				else:
-    					currentSkip -= limitPerPage						#Updates page if it doesn't
-
-    				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")	#debugging
-    				await lb_msg.edit(embed = getEmbedObject())
-    				await lb_msg.remove_reaction(left_arrow, ctx.author)
-
-    			time.sleep(1)		#To avoid resource hogging (by looping continously)
-
-    		await lb_msg.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed
-            """
 
 
     @addManualResult.error
@@ -391,7 +456,7 @@ def checkCorrectScore(score):
             return "incorrect"
 
 
-def pendingMatchEmbed(winTeam, lossTeam, winCapt, lossCapt, isOT):
+def getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT, isPending):
     #Recieves the winning team, losing team, their captains and whether it is OT
 
     winTeamStr = ""
@@ -405,16 +470,24 @@ def pendingMatchEmbed(winTeam, lossTeam, winCapt, lossCapt, isOT):
         deductedPoints = pNonOTLoss
 
     for player in winTeam:
-        winTeamStr += f"<@{player}> : + {awardedPoints}\n"
+        winTeamStr += f"<@{player}> : `+ {awardedPoints}`\n"
 
     for player in lossTeam:
-        lossTeamStr += f"<@{player}> : - {abs(deductedPoints)}\n"
+        lossTeamStr += f"<@{player}> : `- {abs(deductedPoints)}`\n"
 
+    embedTitle = ""
+    embedFooterText = ""
+    if isPending :
+        embedTitle = f"Match Result Update Pending: {MID}"
+        embedFooterText = f"Captains, react with {check_mark} to confirm"
+    else:
+        embedTitle = f"Match Result Confirmed: {MID}"
+        embedFooterText = f"Results confirmed: {check_mark}"
 
-    myEmbed = discord.Embed(title = "Match Result Pending", color = embedSideColor)
+    myEmbed = discord.Embed(title = embedTitle)
     myEmbed.add_field(name = f"Team: {winCapt}", value = winTeamStr)
     myEmbed.add_field(name = f"Team: {lossCapt}", value = lossTeamStr)
-    myEmbed.set_footer(text = f"Captains, react with {check_mark} to confirm")
+    myEmbed.set_footer(text = embedFooterText)
 
     return myEmbed
 
@@ -557,6 +630,8 @@ def generateTeams(matchID, pList):
 
     #Get dict of balanced teams in the form {playerDiscID: ELO, cont.}
     dicTeamA, dicTeamB = getBalancedTeams(lobbyDic)
+
+    #print(dicTeamA)
 
     #Get captains of teams using highest ELO
     captainTeamA = max(dicTeamA, key=dicTeamA.get)
