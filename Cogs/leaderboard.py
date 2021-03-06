@@ -113,7 +113,7 @@ class Leaderboard(commands.Cog):
 
 			try:
 				#Watches out for author to add the proper reaction
-				reaction, user = await self.client.wait_for('reaction_add', timeout = 5.0, check = check)
+				reaction, user = await self.client.wait_for('reaction_add', timeout = 30.0, check = check)
 
 			except asyncio.TimeoutError:
 				pass					#I forgot why I added timeout above and asyncio.TimeoutError here

@@ -96,19 +96,28 @@ class QueueSystem(commands.Cog):
 
         #Adds user to the queue
         discID = member.id
-        queueEmbed = discord.Embed(color = embedSideColor)
+        
+
+        userDoc = dbCol.find({"discID" : discID})
+        if userDoc.count() == 0:
+            queueEmbed = discord.Embed(description = "Please register first using `.register`", color = embedSideColor)
+            await ctx.send(embed = queueEmbed)
+            print(f"Unregistered user {member} tried to join Global Queue")
+            return None
 
         if discID not in GQL:               #Checks if user is in Global Queue
             if discID not in PIOM:          #Checks if user is in Match
                 GQL.append(discID)
                 print(f"{member} has joined the Global Queue")
+
+                queueEmbed = discord.Embed(color = embedSideColor)
                 queueEmbed.add_field(name = f"Added to Global Queue ({len(GQL)}/{playersPerLobby})" , value = f"<@{member.id}>", inline = True)
                 await ctx.send(embed = queueEmbed)
             else:
-                queueEmbed.add_field(name = f"You are already in a match", value = "** **")
+                queueEmbed = discord.Embed(description = f"You are already in a match", color = embedSideColor)
                 await ctx.send(embed = queueEmbed)
         else:
-            queueEmbed.add_field(name = f"You are already in the Global Queue", value = "** **")
+            queueEmbed = discord.Embed(description = f"You are already in the  Global Queue", color = embedSideColor)
             await ctx.send(embed = queueEmbed)
 
 
@@ -144,10 +153,7 @@ class QueueSystem(commands.Cog):
 
 
 
-        """
-        for member in GQL:
-            print(f"Position:{GQL.index(member)} - {member}")
-        """
+        
 
     @commands.command(aliases = ["leaveq","leave"])
     async def leaveQueue(self, ctx, member: discord.Member):
@@ -163,6 +169,88 @@ class QueueSystem(commands.Cog):
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
 
         await ctx.send(embed = queueEmbed)
+
+
+
+    @commands.command(aliases = ["showM", "getMatch"])
+    async def showMatch(self, ctx, matchID):
+
+
+        matchDoc = matchesCol.find_one({"MID": matchID})
+
+        if matchDoc is not None:
+            MID = matchDoc["MID"]
+            matchScore = matchDoc["score"]
+            teamAList = matchDoc["matchList"][:playersPerLobby//2]
+            teamBList = matchDoc["matchList"][playersPerLobby//2:]
+            teamACaptain = teamAList[0]
+            teamBCaptain = teamBList[0]
+
+        
+        else:
+            myEmbed = discord.Embed(color = embedSideColor)
+            myEmbed.add_field(name = "Match not found", value = "** **")
+            await ctx.send(embed = myEmbed)
+            return None
+
+        #Get Discord Names of Captains
+        CaptNameA = await self.client.fetch_user(teamACaptain)
+        CaptNameB = await self.client.fetch_user(teamBCaptain)
+
+        #Prepare Query List for dbCol collection
+        queryList = []
+        for playerDiscID in teamAList + teamBList:
+            playerDic = {"discID" : playerDiscID}
+            queryList.append(playerDic)
+
+        playerDocs = dbCol.find({"$or" : queryList})
+
+        lobbyDic = {}
+        for x in playerDocs:
+            lobbyDic[x["discID"]] = x["ELO"]
+
+
+
+        #Preparing Embed Value strings
+        teamStringA = ""
+        teamStringB = ""
+
+        for playerDiscID in teamAList:
+            teamStringA += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
+
+        for playerDiscID in teamBList:
+            teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
+
+        embedDescription = ( "**ID:** " + str(matchID) + "\n**Score:** " 
+                                + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B" )
+
+        myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
+        #myEmbed.add_field(name = "Details:", value = f"ID: {matchID}\nScore:{matchScore}", inline = True)
+        myEmbed.add_field(name = f"Team A: {CaptNameA}", value = teamStringA, inline = False)
+        myEmbed.add_field(name = f"Team B: {CaptNameB}", value = teamStringB, inline = False)
+
+        await ctx.send(embed = myEmbed)
+
+
+
+
+    @commands.command(name = "setELO")
+    async def setELO(self, ctx, member : discord.Member, ELO : int):
+
+        opResult = dbCol.update_one({"discID" : member.id}, { "$set" : {"ELO" : ELO}})
+
+        if opResult.matched_count == 0:
+            failEmbed = discord.Embed(description = "User not found", color = 0xff0000)
+            await ctx.send(embed = failEmbed)
+            return None
+
+        elif opResult.modified_count != 0:
+            successEmbed = discord.Embed(description = f"Succesfully set ELO: {ELO}", color = embedSideColor)
+            await ctx.send(embed = successEmbed)
+
+
+
+
 
 
     @commands.command(name = "result")
