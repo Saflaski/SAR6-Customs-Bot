@@ -110,9 +110,10 @@ class QueueSystem(commands.Cog):
                 GQL.append(discID)
                 print(f"{member} has joined the Global Queue")
 
-                queueEmbed = discord.Embed(color = embedSideColor)
-                queueEmbed.add_field(name = f"Added to Global Queue ({len(GQL)}/{playersPerLobby})" , value = f"<@{member.id}>", inline = True)
-                await ctx.send(embed = queueEmbed)
+                #queueEmbed = discord.Embed(color = embedSideColor)
+                #queueEmbed.add_field(name = f"Added to Global Queue ({len(GQL)}/{playersPerLobby})" , value = f"<@{member.id}>", inline = True)
+                await ctx.message.add_reaction(check_mark)
+                #await ctx.send(embed = queueEmbed)
             else:
                 queueEmbed = discord.Embed(description = f"You are already in a match", color = embedSideColor)
                 await ctx.send(embed = queueEmbed)
@@ -164,11 +165,12 @@ class QueueSystem(commands.Cog):
         queueEmbed = discord.Embed(color = embedSideColor)
         if member.id in GQL:
             GQL.remove(member.id)
-            queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
+            #queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
+            await ctx.message.add_reaction(check_mark)
+            
         else:
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
-
-        await ctx.send(embed = queueEmbed)
+            await ctx.send(embed = queueEmbed)
 
 
 
