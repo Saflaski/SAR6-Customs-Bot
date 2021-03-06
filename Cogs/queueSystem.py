@@ -174,7 +174,7 @@ class QueueSystem(commands.Cog):
 
 
 
-    @commands.command(aliases = ["showM", "getMatch"])
+    @commands.command(aliases = ["showM", "getMatch", "getM", "match"])
     async def showMatch(self, ctx, matchID):
 
 
@@ -232,7 +232,10 @@ class QueueSystem(commands.Cog):
 
         await ctx.send(embed = myEmbed)
 
-
+    @showMatch.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Invalid Usage, try: `.getMatch <match ID>`")
 
 
     @commands.command(name = "setELO")
@@ -249,9 +252,13 @@ class QueueSystem(commands.Cog):
             successEmbed = discord.Embed(description = f"Succesfully set ELO: {ELO}", color = 0x00ff00)
             await ctx.send(embed = successEmbed)
 
+    @setELO.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.setELO <@discord ID> <ELO>`")
 
     @commands.command(name = "changepoints")
-    async def removePoints(self, ctx, givenMode, matchID, givenScore ):
+    async def changePoints(self, ctx, givenMode, matchID, givenScore ):
 
         givenScore = checkCorrectScore(givenScore)
 
@@ -315,6 +322,12 @@ class QueueSystem(commands.Cog):
         myEmbed = discord.Embed(description = "Succesfully changed points", color = 0x00ff00)
         await ctx.send(embed = myEmbed)
 
+    @changePoints.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Invalid Usage, try: `.changepoints <set/revert> <match ID> <score>`")
+
+
     @commands.command(name = "updatescore")
     async def updateScore(self, ctx, matchID, givenScore):
 
@@ -330,7 +343,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = myEmbed)
             return None
 
-        if "incorrect" not in checkCorrectScore(givenScore):
+        if "incorrect" not in checkCorrectScore(givenScore) or givenScore == "C-C" or givenScore == "0-0":
             matchesCol.update_one({"MID" : matchID}, {"$set" : {"score" : givenScore}})
             await ctx.send(embed = discord.Embed(description = f"Succesfully set score: {givenScore}", color = 0x00ff00))
 
@@ -338,6 +351,42 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = discord.Embed(description = "Incorrect score format", color = 0xff0000))
 
 
+    @updateScore.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Invalid Usage, try: `.updatescore <match ID> <score>`")
+
+    @commands.command(name = "freeplayers")
+    async def freeplayers(self, ctx, matchID):              #Free players of a certain match from PIOM
+
+        global PIOM
+
+        matchDoc = matchesCol.find_one({"MID": matchID})
+
+        if matchDoc is not None:
+            matchList = matchDoc["matchList"]
+            currentResult = matchDoc["score"]
+
+        else:
+            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
+            await ctx.send(embed = myEmbed)
+            return None
+
+        if matchDoc["score"] != "0-0" and matchDoc["score"] != "C-C":    #As in, it's not an ongoing and cancelled match
+            await ctx.send(embed = discord.Embed(title = "Match already closed.", color = 0xff0000))
+            return None
+
+        else:
+            for playerDiscID in matchList:
+                PIOM.remove(playerDiscID)
+                print(f"Removed {playerDiscID} from PIOM")
+            await ctx.send(embed = discord.Embed(title = "Players freed", color = 0x00ff00))
+
+
+    @freeplayers.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Invalid Usage, try: `.freeplayers <match ID>`")
 
 
     @commands.command(name = "result")
@@ -605,9 +654,9 @@ class QueueSystem(commands.Cog):
 
     #### TESTING PURPOSES ####
     @commands.command(name = "QSTest")
-    async def queueTest(self, ctx):
+    async def queueTest(self, ctx, score):
 
-        print(GVC)
+        print(checkCorrectScore(score))
 
 
     #### TESTING PURPOSES ####
