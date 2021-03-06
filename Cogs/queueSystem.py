@@ -190,8 +190,7 @@ class QueueSystem(commands.Cog):
 
         
         else:
-            myEmbed = discord.Embed(color = embedSideColor)
-            myEmbed.add_field(name = "Match not found", value = "** **")
+            myEmbed = discord.Embed(descripion = "Match not found", color = embedSideColor)
             await ctx.send(embed = myEmbed)
             return None
 
@@ -247,10 +246,96 @@ class QueueSystem(commands.Cog):
             return None
 
         elif opResult.modified_count != 0:
-            successEmbed = discord.Embed(description = f"Succesfully set ELO: {ELO}", color = embedSideColor)
+            successEmbed = discord.Embed(description = f"Succesfully set ELO: {ELO}", color = 0x00ff00)
             await ctx.send(embed = successEmbed)
 
 
+    @commands.command(name = "changepoints")
+    async def removePoints(self, ctx, givenMode, matchID, givenScore ):
+
+        givenScore = checkCorrectScore(givenScore)
+
+        if "incorrect" in givenScore:
+            await ctx.send(embed = discord.Embed(description = "Score in wrong format", color = 0xff0000))
+            return None
+        
+        givenModeCheck = (givenMode == "set") or (givenMode == "revert")
+        if not givenModeCheck:
+            myEmbed = discord.Embed(description = "Invalid mode, use \"revert\" or \"set\"", color = 0xff0000)
+            await ctx.send(embed = myEmbed)
+            return None
+
+        if "OT" in givenScore:
+            if givenMode == "revert":
+                awardedPoints = pOTLoss
+                deductedPoints = pOTWin
+
+            elif givenMode == "set":
+                awardedPoints = pOTWin
+                deductedPoints = pOTLoss
+
+        elif "nonOT":
+            if givenMode == "revert":
+                awardedPoints = pNonOTLoss
+                deductedPoints = pNonOTWin
+
+            elif givenMode == "set":
+                awardedPoints = pNonOTWin
+                deductedPoints = pNonOTLoss
+
+        
+        #Prepare queries to find players
+        matchDoc = matchesCol.find_one({"MID": matchID})
+
+        if matchDoc is not None:
+            teamAList = matchDoc["matchList"][:playersPerLobby//2]
+            teamBList = matchDoc["matchList"][playersPerLobby//2:]
+
+        else:
+            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
+            await ctx.send(embed = myEmbed)
+            return None
+
+        queryListA = []
+        queryListB = []
+
+        for playerDiscID in teamAList:
+            dbPlayerDic = {"discID" : playerDiscID}
+            queryListA.append(dbPlayerDic)
+            
+        for playerDiscID in teamBList:
+            dbPlayerDic = {"discID" : playerDiscID}
+            queryListB.append(dbPlayerDic)
+
+
+
+        dbCol.update_many({"$or" : queryListA}, { "$inc" : {"ELO" : awardedPoints}})
+        dbCol.update_many({"$or" : queryListB}, { "$inc" : {"ELO" : deductedPoints}})
+
+        myEmbed = discord.Embed(description = "Succesfully changed points", color = 0x00ff00)
+        await ctx.send(embed = myEmbed)
+
+    @commands.command(name = "updatescore")
+    async def updateScore(self, ctx, matchID, givenScore):
+
+        #Prepare queries to find players
+        matchDoc = matchesCol.find_one({"MID": matchID})
+
+        if matchDoc is not None:
+            teamAList = matchDoc["matchList"][:playersPerLobby//2]
+            teamBList = matchDoc["matchList"][playersPerLobby//2:]
+
+        else:
+            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
+            await ctx.send(embed = myEmbed)
+            return None
+
+        if "incorrect" not in checkCorrectScore(givenScore):
+            matchesCol.update_one({"MID" : matchID}, {"$set" : {"score" : givenScore}})
+            await ctx.send(embed = discord.Embed(description = f"Succesfully set score: {givenScore}", color = 0x00ff00))
+
+        else:
+            await ctx.send(embed = discord.Embed(description = "Incorrect score format", color = 0xff0000))
 
 
 
