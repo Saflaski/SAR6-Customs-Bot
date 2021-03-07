@@ -6,6 +6,7 @@ import secrets
 import string
 import time
 import asyncio
+import random
 from discord.ext import commands, tasks
 from itertools import combinations
 
@@ -26,14 +27,20 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 #Global Queue list
 GQL = []
 
+#Test Queues
+
+
+
 #Dictionary of generated lobbies (but not matches)
 generatedLobby = {}
 
 #Players In Ongoing Matches
-PIOM = []
+PIOM = {}
+
 
 #Generated Voice Channels
 GVC = {}
+
 
 
 #Global Variables
@@ -53,6 +60,10 @@ pNonOTLoss = -30
 
 #Unicode Reaction Emojis
 check_mark = '\u2705'
+digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
+
+#SAR6C Map Pool
+MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "Theme Park"]
 
 """
 Queue system v0.1
@@ -105,6 +116,22 @@ class QueueSystem(commands.Cog):
             print(f"Unregistered user {member} tried to join Global Queue")
             return None
 
+        elif discID in GQL:
+            queueEmbed = discord.Embed(description = f"You are already in the  Global Queue", color = embedSideColor)
+            await ctx.send(embed = queueEmbed)
+            return None
+
+        for match in PIOM:
+            if discID in PIOM[match]:
+                queueEmbed = discord.Embed(description = f"You are already in a match", color = embedSideColor)
+                await ctx.send(embed = queueEmbed)
+                return None
+
+        GQL.append(discID)
+        print(f"{member} has joined the Global Queue")
+        await ctx.message.add_reaction(check_mark)
+
+        """
         if discID not in GQL:               #Checks if user is in Global Queue
             if discID not in PIOM:          #Checks if user is in Match
                 GQL.append(discID)
@@ -120,7 +147,7 @@ class QueueSystem(commands.Cog):
         else:
             queueEmbed = discord.Embed(description = f"You are already in the  Global Queue", color = embedSideColor)
             await ctx.send(embed = queueEmbed)
-
+        """
 
     @commands.command(aliases = ["showq", "queue"])
     async def showQueue(self, ctx):
@@ -356,8 +383,8 @@ class QueueSystem(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Invalid Usage, try: `.updatescore <match ID> <score>`")
 
-    @commands.command(name = "freeplayers")
-    async def freeplayers(self, ctx, matchID):              #Free players of a certain match from PIOM
+    @commands.command(name = "closematch")
+    async def closematch(self, ctx, matchID):              #Free players of a certain match from PIOM
 
         global PIOM
 
@@ -372,21 +399,14 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = myEmbed)
             return None
 
-        if matchDoc["score"] != "0-0" and matchDoc["score"] != "C-C":    #As in, it's not an ongoing and cancelled match
-            await ctx.send(embed = discord.Embed(title = "Match already closed.", color = 0xff0000))
-            return None
+        del PIOM[matchID]
+        await ctx.send(embed = discord.Embed(title = f"Closed match: {matchID}", color = 0x00ff00))
 
-        else:
-            for playerDiscID in matchList:
-                PIOM.remove(playerDiscID)
-                print(f"Removed {playerDiscID} from PIOM")
-            await ctx.send(embed = discord.Embed(title = "Players freed", color = 0x00ff00))
-
-
-    @freeplayers.error
+        
+    @closematch.error
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Invalid Usage, try: `.freeplayers <match ID>`")
+            await ctx.send("Invalid Usage, try: `.closematch <match ID>`")
 
     @commands.command(name = "delvc")
     async def deleteVC(self, ctx, matchID = ""):
@@ -428,7 +448,7 @@ class QueueSystem(commands.Cog):
         await ctx.send("Cleared Global Queue")
         print("Removed players from GQL")
 
-    @commands.command(name = "removequeue")
+    @commands.command(name = "rpg")
     async def remFromQueue(self, ctx, member: discord.Member):
         global GQL
 
@@ -440,7 +460,7 @@ class QueueSystem(commands.Cog):
     @remFromQueue.error
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-            await ctx.send("Invalid Usage, try: `.removequeue <@discord ID>`")
+            await ctx.send("Invalid Usage, try: `.rpg <@discord ID>`")
 
     @commands.command(name = "result")
     async def addManualResult(self, ctx, score):
@@ -448,7 +468,13 @@ class QueueSystem(commands.Cog):
         global GVC
 
         #Checks if author is in an ongoing match
-        if ctx.author.id not in PIOM:
+
+        PIOMCheck = False
+        for match in PIOM:
+            if ctx.author.id in PIOM[match]:
+                PIOMCheck = True
+
+        if not PIOMCheck:
             await ctx.send("You aren't in an ongoing match")
             return None
 
@@ -482,7 +508,7 @@ class QueueSystem(commands.Cog):
                 confirmMatch has 3 functions:
                     ->Update the embed to reflect that the captains have confirmed the match result.
                     ->Update database and increment/decrement points as per global variables to players
-                    ->Remove players from PIOM/Players In Ongoing Matches list.
+                    ->Remove players from PIOM/Dict that stores which match players are in.
 
         """
 
@@ -630,12 +656,9 @@ class QueueSystem(commands.Cog):
                 matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
                 print(f"Updated DB for score: {match_score}")
 
-                #Remove Players from PIOM
-                for givenPlayer in (winningTeam + losingTeam):
-                    try:
-                        PIOM.remove(givenPlayer)
-                    except ValueError:
-                        print("FATAL ERROR: Value Error at confirmMatch")
+                #Remove the matchID from PIOM
+
+                del PIOM[MID]
 
                 #Remove VCs
 
@@ -664,7 +687,7 @@ class QueueSystem(commands.Cog):
             oppTeamConf = False
             authTeamConf = False
 
-            timeout = 90
+            timeout = 120
             timeout_start = time.time()		#Starts keeping track of time
 
             while time.time() < timeout_start + timeout:
@@ -703,34 +726,30 @@ class QueueSystem(commands.Cog):
             await ctx.send("Invalid Usage, try: `.result #-#` ,Eg.: `.result 7-5`")
 
 
-
-
-    #### TESTING PURPOSES ####
-    @commands.command(name = "QSTest")
-    async def queueTest(self, ctx, score):
-
-        print(checkCorrectScore(score))
-
-
-    #### TESTING PURPOSES ####
-
     @tasks.loop(seconds = 1)
     async def findPossibleLobby(self):
         global generatedLobby
         global playersPerLobby
+        global PIOM
+
 
         if len(GQL) >= playersPerLobby:
             print(f"Generating Match:")
 
+            tempList = []
             playerList = []
 
             for i in range(playersPerLobby):
                 playerList.append(GQL[i])
             for member in playerList:
                 GQL.remove(member)
-                PIOM.append(member)
+                tempList.append(member)
 
             matchID = generateMatchID()
+            #Add list to PIOM, matchID : [listOfPlayers]
+
+            PIOM[matchID] = tempList
+
             generatedLobby.update({matchID : playerList})
 
 
@@ -750,7 +769,7 @@ class QueueSystem(commands.Cog):
 
                 #Send Generated Match Embed
                 channel = self.client.get_channel(matchGenerationChannel)
-                await channel.send(embed = embeddedContent)
+                msg = await channel.send(embed = embeddedContent)
 
                 #Make Voice Channels with captains' names
                 VC_A = await myGuild.create_voice_channel(name = f"Team: {teamA_VCName}", category = voiceChannelCategory)
@@ -760,7 +779,112 @@ class QueueSystem(commands.Cog):
                 GVC[CapA_ID] = VC_A.id
                 GVC[CapB_ID] = VC_B.id
 
+                #Start the map ban
+                await self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID)
+
                 break
+
+
+    async def mapbanSystem(self, MID, embedMessage, msg : discord.Message, capA_ID, capB_ID ):
+
+        maplist = random.sample(MAP_POOL, k = 3)        #Randomly choose 3 unique maps from map pool
+
+        for emoji in digitArr:
+            await msg.add_reaction(emoji)               #Adds reactable emojis to match message
+
+        #Prepare map dictionary in the form: {emoji : map}
+        someDict = {}
+        for i in range(len(maplist)):
+            someDict[digitArr[i]] = maplist[i]
+
+
+        #Prepare map string to display in embed content for initial run
+        mapString = ""
+        for mapIndex in someDict:
+            mapString += f"{mapIndex} -> {someDict[mapIndex]}\n"
+
+        #For when a map is banned/emoji is reacted to
+        async def genNewEmbed():
+            mapString = ""
+            for mapIndex in someDict:
+                mapString += f"{mapIndex} -> {someDict[mapIndex]}\n"
+            embedMessage.set_field_at(3, name = "Map Ban Phase:", value = mapString)
+            await msg.edit(embed = embedMessage)
+
+
+        embedMessage.add_field(name = "Map Ban Phase:", value = mapString)
+        await msg.edit(embed = embedMessage)
+
+        #Check that only captains have reacted and only to the correct emojis
+
+        switcherList = []   #List to see who can ban next
+
+        def check(myreaction, myuser):
+
+            userCond = (myuser.id == capA_ID) or (myuser.id == capB_ID)
+            reactionCond = str(myreaction.emoji) in someDict.keys()
+            return (userCond and reactionCond)
+
+        #30 second timer for banning maps
+        timeout = 300
+        timeout_start = time.time()     #Starts keeping track of time
+
+        lastMap = ""
+
+        while time.time() < timeout_start + timeout:
+            try:
+                myreaction, myuser = await self.client.wait_for('reaction_add',timeout = 300.0, check = check)
+            except asyncio.TimeoutError:
+                print("Map Ban timed out")
+
+            #If there has been a valid emoji reaction
+            if myreaction is not None:
+
+                #Check if the reacting captain has already banned in the previous run
+                if myuser.id in switcherList:
+                    await msg.remove_reaction(myreaction, myuser)
+                    continue
+
+                else:
+
+                    #Remove previous captain and append new captain as latest map ban-er
+                    switcherList.clear()
+                    switcherList.append(myuser.id)
+
+                    #Edit the embed to reflect the new ban
+                    del someDict[str(myreaction.emoji)]
+                    await genNewEmbed()
+                    await msg.clear_reaction(myreaction)
+
+
+            #When only one map if left
+            if len(someDict) == 1:
+                    lastMap = list(someDict.values())[0]        #Get the name of the remaining map
+                    embedMessage.set_field_at(3, name = f"Map Ban Result: {lastMap}", value = f"** **")
+                    
+                    #Clean up the embed
+                    await msg.edit(embed = embedMessage)
+                    await msg.clear_reactions()
+                    break
+
+            time.sleep(1)       #Avoid resource hogging
+
+        if len(lastMap) != 0:
+            matchesCol.update_one({"MID": MID },{"$set" : {"map" : lastMap}})
+            print(f"Map set: {lastMap}")
+        else:
+            print("Map not set")
+
+    #### TESTING PURPOSES ####
+
+    @commands.command(name = "QSTest")
+    async def queueTest(self, ctx):
+
+       pass
+
+    #### TESTING PURPOSES ####
+
+
 
 def generateMatchID():
     """
