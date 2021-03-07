@@ -107,7 +107,7 @@ class QueueSystem(commands.Cog):
 
         #Adds user to the queue
         discID = member.id
-        
+
 
         userDoc = dbCol.find({"discID" : discID})
         if userDoc.count() == 0:
@@ -181,7 +181,7 @@ class QueueSystem(commands.Cog):
 
 
 
-        
+
 
     @commands.command(aliases = ["leaveq","leave"])
     async def leaveQueue(self, ctx, member: discord.Member):
@@ -194,7 +194,7 @@ class QueueSystem(commands.Cog):
             GQL.remove(member.id)
             #queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
             await ctx.message.add_reaction(check_mark)
-            
+
         else:
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
             await ctx.send(embed = queueEmbed)
@@ -215,7 +215,7 @@ class QueueSystem(commands.Cog):
             teamACaptain = teamAList[0]
             teamBCaptain = teamBList[0]
 
-        
+
         else:
             myEmbed = discord.Embed(descripion = "Match not found", color = embedSideColor)
             await ctx.send(embed = myEmbed)
@@ -249,7 +249,7 @@ class QueueSystem(commands.Cog):
         for playerDiscID in teamBList:
             teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
 
-        embedDescription = ( "**ID:** " + str(matchID) + "\n**Score:** " 
+        embedDescription = ( "**ID:** " + str(matchID) + "\n**Score:** "
                                 + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B" )
 
         myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
@@ -292,7 +292,7 @@ class QueueSystem(commands.Cog):
         if "incorrect" in givenScore:
             await ctx.send(embed = discord.Embed(description = "Score in wrong format", color = 0xff0000))
             return None
-        
+
         givenModeCheck = (givenMode == "set") or (givenMode == "revert")
         if not givenModeCheck:
             myEmbed = discord.Embed(description = "Invalid mode, use \"revert\" or \"set\"", color = 0xff0000)
@@ -317,7 +317,7 @@ class QueueSystem(commands.Cog):
                 awardedPoints = pNonOTWin
                 deductedPoints = pNonOTLoss
 
-        
+
         #Prepare queries to find players
         matchDoc = matchesCol.find_one({"MID": matchID})
 
@@ -336,7 +336,7 @@ class QueueSystem(commands.Cog):
         for playerDiscID in teamAList:
             dbPlayerDic = {"discID" : playerDiscID}
             queryListA.append(dbPlayerDic)
-            
+
         for playerDiscID in teamBList:
             dbPlayerDic = {"discID" : playerDiscID}
             queryListB.append(dbPlayerDic)
@@ -402,14 +402,14 @@ class QueueSystem(commands.Cog):
         del PIOM[matchID]
         await ctx.send(embed = discord.Embed(title = f"Closed match: {matchID}", color = 0x00ff00))
 
-        
+
     @closematch.error
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Invalid Usage, try: `.closematch <match ID>`")
 
     @commands.command(name = "delvc")
-    async def deleteVC(self, ctx, matchID = ""):
+    async def deleteVC(self, ctx, matchID = ""):        #Deletes voice channels generated because of a certain match
 
         global GVC
         matchDoc = matchesCol.find_one({"MID": matchID})
@@ -433,7 +433,6 @@ class QueueSystem(commands.Cog):
 
         await VC1.delete()
         await VC2.delete()
-
 
         del GVC[teamACaptain]
         del GVC[teamBCaptain]
@@ -861,7 +860,7 @@ class QueueSystem(commands.Cog):
             if len(someDict) == 1:
                     lastMap = list(someDict.values())[0]        #Get the name of the remaining map
                     embedMessage.set_field_at(3, name = f"Map Ban Result: {lastMap}", value = f"** **")
-                    
+
                     #Clean up the embed
                     await msg.edit(embed = embedMessage)
                     await msg.clear_reactions()
@@ -880,7 +879,7 @@ class QueueSystem(commands.Cog):
     @commands.command(name = "QSTest")
     async def queueTest(self, ctx):
 
-       pass
+       await ctx.send(embed = discord.Embed(description = f"{PIOM}"))
 
     #### TESTING PURPOSES ####
 
