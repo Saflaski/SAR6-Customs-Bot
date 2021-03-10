@@ -779,8 +779,8 @@ class QueueSystem(commands.Cog):
                 GVC[CapB_ID] = VC_B.id
 
                 #Start the map ban
-                await self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID)
-
+                asyncio.create_task(self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID))
+                print("Reached end")
                 break
 
 
