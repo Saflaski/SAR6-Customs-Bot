@@ -6,6 +6,9 @@ import secrets
 import string
 import time
 import asyncio
+import os
+import sys
+import ast
 import random
 import math
 import statistics
@@ -56,14 +59,9 @@ voiceChannelCategoryID = 816634104362827786     #Used later to get voiceChannelC
 voiceChannelCategory = None                     #Category into which to make VCs
 
 
-#Points won in Matches
-pOTWin = 20
-pOTLoss = 0
-pNonOTWin = 30
-pNonOTLoss = -30
-
 #Unicode Reaction Emojis
 check_mark = '\u2705'
+cross_mark = '\u274E'
 digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
 
 #SAR6C Map Pool
@@ -71,7 +69,7 @@ MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "T
 
 #ELO System Values
 K_VAL = 75
-EXPO_VAL = 800      
+EXPO_VAL = 800
 
 
 """
@@ -548,32 +546,8 @@ class QueueSystem(commands.Cog):
                 teamBCaptain = teamBList[0]
 
             else:
-                print("\n\nFATAL ERROR: Failure at addManualResult\n\n")
+                print("\n\nFATAL ERROR: Failure 1 at addManualResult\n\n")
                 return None
-
-            #Finding Current ELO of all player in a team
-
-            winTeamDict = {}
-            lossTeamDict = {}
-
-            ELOQueryString = ""
-            for playerDiscID in teamAList + teamBList:
-                dbPlayerDic = {"discID" : playerDiscID}
-                queryListLost.append(dbPlayerDic)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
             print(f"Sending Match Result Pending Panel:{MID} ")
 
@@ -590,7 +564,7 @@ class QueueSystem(commands.Cog):
             authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
             oppTeamCaptain = await self.client.fetch_user(oppTeamList[0])
 
-            #Prepare pending match embed
+            #Prepare Match Embed
 
             winningTeam = []
             losingTeam = []
@@ -598,50 +572,67 @@ class QueueSystem(commands.Cog):
             lossCapt = ""
             isOT = False
 
-            #getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT, isPending)
-
-            #Assign winning team, losing team, their captains, and scores to appropriate variables
+            #As of now, OT/nonOT has no effect
 
             print(teamResult)
+
+            if teamResult[1] > teamResult[2]:
+                #Author's team won
+                winningTeam, losingTeam = authorTeamList, oppTeamList
+                winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
+            elif teamResult[1] < teamResult[2]:
+                #Author's team lost
+                winningTeam, losingTeam = oppTeamList, authorTeamList
+                winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
+
             if "nonOT" in teamResult:
                 isOT = False
-                if teamResult[1] > teamResult[2]:
-                    #Author's team won in nonOT
-                    winningTeam, losingTeam = authorTeamList, oppTeamList
-                    winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
-
-                elif teamResult[1] < teamResult[2]:
-                    #Author's team lost in nonOT
-                    winningTeam, losingTeam = oppTeamList, authorTeamList
-                    winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
-
-
             elif "OT" in teamResult:
                 isOT = True
-                if teamResult[1] > teamResult[2]:
-                    #Author's team won in OT
-                    winningTeam, losingTeam = authorTeamList, oppTeamList
-                    winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
 
-                elif teamResult[1] < teamResult[2]:
-                    #Author's team lost in OT
-                    winningTeam, losingTeam = oppTeamList, authorTeamList
-                    winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
+            #Prepare a dict of playerIDs and their pre match ELOs
+            matchDict = ongMatchFileOps("R", MID)
 
-            #print(winningTeam, losingTeam, winCapt, lossCapt, isOT)
+            winTeamDict = {}
+            lossTeamDict = {}
+            winTeamChange = {}
+            lossTeamChange = {}
 
-            #Send Pending match Embed for result verification
+            for playerID in winningTeam:
+                winTeamDict[playerID] = matchDict[playerID]
+            for playerID in losingTeam:
+                lossTeamDict[playerID] = matchDict[playerID]
+
+            #Use ELO Rating System to get new ELOs
+            newWinTeamDict, newLossTeamDict = getIndivELO(winTeamDict, lossTeamDict)
+
+            for playerID in newWinTeamDict:
+                winTeamChange[playerID] = newWinTeamDict[playerID] - winTeamDict[playerID]
+            for playerID in newLossTeamDict:
+                lossTeamChange[playerID] = newLossTeamDict[playerID] - lossTeamDict[playerID]
+
+            try:
+                embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = True )
+                sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
+                await sentEmbed.add_reaction(check_mark)
+                await sentEmbed.add_reaction(cross_mark)
+
+            except Exception as e:
+                print(e)
+
+
+            """
             try:
                 embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = True)
                 sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
                 await sentEmbed.add_reaction(check_mark)
             except Exception as e:
                 print(e)
-
+            """
             async def confirmMatch():
 
                 #Update Embed Message
-                await sentEmbed.edit(embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = False))
+                await sentEmbed.edit(embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = False))
 
                 global GVC
 
@@ -649,51 +640,26 @@ class QueueSystem(commands.Cog):
                 queryListWon = []          #Lists for MongoDB Query
                 queryListLost = []
 
-
-                if isOT:
-                    awardedPoints = pOTWin
-                    deductedPoints = pOTLoss
-                else:
-                    awardedPoints = pNonOTWin
-                    deductedPoints = pNonOTLoss
-
-                #Building queryList
-
-
-                try:
-                    for playerDiscID in winningTeam:
-                        dbPlayerDic = {"discID" : playerDiscID}
-                        queryListWon.append(dbPlayerDic)
-                except Exception as e:
-                    print(e)
-
-                for playerDiscID in losingTeam:
-                    dbPlayerDic = {"discID" : playerDiscID}
-                    queryListLost.append(dbPlayerDic)
-
-
-                #For Won
-                try:
-                    dbCol.update_many({"$or" : queryListWon}, { "$inc" : {"ELO" : awardedPoints}})
-                    print("Updated DB for winning team")
-                except Exception as e:
-                    print(e)
-
-                #For Lost
-                dbCol.update_many({"$or" : queryListLost}, { "$inc" : {"ELO" : deductedPoints}})
-                print("Updated DB for losing team")
-
-                #Update Match Score
+                #Update Match Score in Database
                 match_score = str(f"{teamResult[1]}-{teamResult[2]}")
                 matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
                 print(f"Updated DB for score: {match_score}")
 
-                #Remove the matchID from PIOM
+                #Update Player Scores in Database
+                for playerID in winTeamChange:
+                    dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+                for playerID in lossTeamChange:
+                    dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
 
+                #Remove the matchID from PIOM and ONGOING_MATCHES.txt
                 del PIOM[MID]
+                fileOpsResult = ongMatchFileOps("D", MID)
+                if fileOpsResult == "Deleted":
+                    print("Succesfully deleted match from ONGOING_MATCHES.txt")
+                elif fileOpsResult is None:
+                    print("FATAL ERROR: Could not delete match from ONGOING_MATCHES.txt")
 
                 #Remove VCs
-
                 try:
                     VC1 = self.client.get_channel(GVC[winningTeam[0]])
                     VC2 = self.client.get_channel(GVC[losingTeam[0]])
@@ -750,7 +716,7 @@ class QueueSystem(commands.Cog):
 
             await sentEmbed.clear_reactions()   #Clears reactions after timeout has happened/time limit has elapsed
 
-            
+
 
 
     @addManualResult.error
@@ -911,18 +877,23 @@ class QueueSystem(commands.Cog):
     #### TESTING PURPOSES ####
 
     @commands.command(name = "QSTest")
-    async def queueTest(self, ctx):
+    async def queueTest(self, ctx, mode, MID, Dict = None):
 
-        dictA =  {   'P1': 3525 , 'P2': 3000 , 
-                    'P3': 3205 , 'P4': 3643 , 
-                    'P5': 3420 
+        dictA =  {   'P1': 3525 , 'P2': 3000 ,
+                    'P3': 3205 , 'P4': 3643 ,
+                    'P5': 3420
                 }
 
-        dictB = {   'P6': 3405 , 'P7': 3643 , 
-                    'P8': 3500 , 'P9': 3000 , 
+        dictB = {   'P6': 3405 , 'P7': 3643 ,
+                    'P8': 3500 , 'P9': 3000 ,
                     'P10':3209
                 }
-        getIndivELO(dictA, dictB)
+        #getIndivELO(dictA, dictB)
+        result = ongMatchFileOps(mode, MID, Dict)
+        print(result)
+        print(type(result))
+
+
     #### TESTING PURPOSES ####
 
 
@@ -991,8 +962,58 @@ def getIndivELO(winTeam, lossTeam):
         print(str(playerID) + ": " + str(lossTeamNewRating[playerID] - lossTeam[playerID]))
     """
 
-
+    print("Completed ELO Rating System")
     return winTeamNewRating, lossTeamNewRating
+
+
+def ongMatchFileOps(mode, MID, givenDict = None):
+    #mode = W for Write, D for Delete, R for Read/Finding a match using MID
+    MID = str(MID)
+    #Check if MatchHistoryFile exists, if doesn't exist, then it creates one
+    if not os.path.exists("ONGOING_MATCHES.txt"):
+        print("\n\nFATAL ERROR: ONGOING_MATCHES.txt doesn't exist\n\n" )
+        print("Creating new file: ONGOING_MATCHES.txt")
+        with open("ONGOING_MATCHES.txt", "a") as f:
+            pass
+
+    if mode == "D" or mode == "R":
+        myIndex = None                      #Either Read or Delete or Invalid
+        read_data = None
+        with open('ONGOING_MATCHES.txt') as f:
+            read_data = f.readlines()
+        for data in read_data:
+            if data.startswith(MID + "\n"):
+                myIndex = read_data.index(MID + "\n")
+                dictStr = read_data[myIndex + 1].rstrip("\n")
+                dict = ast.literal_eval(dictStr)
+        if myIndex == None:
+            return None
+        elif mode == "D":
+            del read_data[myIndex]
+            del read_data[myIndex]
+            with open("ONGOING_MATCHES.txt", "w") as f:
+                f.writelines(read_data)
+
+            return "Deleted"
+        elif mode == "R":
+            dictStr = read_data[myIndex + 1].rstrip("\n")
+            dict = ast.literal_eval(dictStr)
+            return dict
+
+    elif mode == "W":
+        fString = ""
+        fString += "\n" + MID + "\n"
+        fString += str(givenDict) + "\n"
+
+        with open('ONGOING_MATCHES.txt', "a") as f:
+            f.write(fString)
+        return "Written"
+
+    else:
+        return None
+        print("FATAL ERROR: INVALID MODE IN ongMatchFileOps ")
+
+
 
 
 
@@ -1017,24 +1038,17 @@ def checkCorrectScore(score):
             return "incorrect"
 
 
-def getResultEmbed(MID, winTeam, lossTeam, winCapt, lossCapt, isOT, isPending):
+def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, isPending):
     #Recieves the winning team, losing team, their captains and whether it is OT
 
     winTeamStr = ""
     lossTeamStr = ""
 
-    if isOT:
-        awardedPoints = pOTWin
-        deductedPoints = pOTLoss
-    else:
-        awardedPoints = pNonOTWin
-        deductedPoints = pNonOTLoss
+    for player in winTeamDict:
+        winTeamStr += f"<@{player}> : `+ {winTeamDict[player]}`\n"
 
-    for player in winTeam:
-        winTeamStr += f"<@{player}> : `+ {awardedPoints}`\n"
-
-    for player in lossTeam:
-        lossTeamStr += f"<@{player}> : `- {abs(deductedPoints)}`\n"
+    for player in lossTeamDict:
+        lossTeamStr += f"<@{player}> : `- {abs(lossTeamDict[player])}`\n"
 
     embedTitle = ""
     embedFooterText = ""
@@ -1194,6 +1208,14 @@ def generateTeams(matchID, pList):
     for x in playerDocs:
         lobbyDic[x["discID"]] = x["ELO"]
         embedDictionary[x["discID"]] = [ x["discName"] , x["ELO"], x["uplayIGN"] ]
+
+    fileOpsResult = ongMatchFileOps("W", matchID, lobbyDic)
+    if fileOpsResult == "Written":
+        print(f"Added matchID: {matchID} to ONGOING_MATCHES.txt")
+    else:
+        print("\nFATAL ERROR: Failed to write to ONGOING_MATCHES.txt at generateTeams()\n")
+
+
 
     #Get dict of balanced teams in the form {playerDiscID: ELO, cont.}
     dicTeamA, dicTeamB = getBalancedTeams(lobbyDic)
