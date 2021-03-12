@@ -7,6 +7,8 @@ import string
 import time
 import asyncio
 import random
+import math
+import statistics
 from discord.ext import commands, tasks
 from itertools import combinations
 
@@ -44,6 +46,8 @@ GVC = {}
 
 
 #Global Variables
+
+#Discord Values
 matchGenerationChannel = 813695785928884267     #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
 myGuildID = 813695785928884264                  #Used later to get myGuild
@@ -64,6 +68,11 @@ digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
 
 #SAR6C Map Pool
 MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "Theme Park"]
+
+#ELO System Values
+K_VAL = 75
+EXPO_VAL = 800      
+
 
 """
 Queue system v0.1
@@ -540,6 +549,31 @@ class QueueSystem(commands.Cog):
 
             else:
                 print("\n\nFATAL ERROR: Failure at addManualResult\n\n")
+                return None
+
+            #Finding Current ELO of all player in a team
+
+            winTeamDict = {}
+            lossTeamDict = {}
+
+            ELOQueryString = ""
+            for playerDiscID in teamAList + teamBList:
+                dbPlayerDic = {"discID" : playerDiscID}
+                queryListLost.append(dbPlayerDic)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             print(f"Sending Match Result Pending Panel:{MID} ")
 
@@ -603,7 +637,6 @@ class QueueSystem(commands.Cog):
                 await sentEmbed.add_reaction(check_mark)
             except Exception as e:
                 print(e)
-
 
             async def confirmMatch():
 
@@ -687,7 +720,7 @@ class QueueSystem(commands.Cog):
             authTeamConf = False
 
             timeout = 120
-            timeout_start = time.time()		#Starts keeping track of time
+            timeout_start = time.time()     #Starts keeping track of time
 
             while time.time() < timeout_start + timeout:
                 try:
@@ -713,10 +746,11 @@ class QueueSystem(commands.Cog):
                     break
 
 
-                time.sleep(1)		#To avoid resource hogging (by looping continously)
+                time.sleep(1)       #To avoid resource hogging (by looping continously)
 
-            await sentEmbed.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed
+            await sentEmbed.clear_reactions()   #Clears reactions after timeout has happened/time limit has elapsed
 
+            
 
 
     @addManualResult.error
@@ -879,9 +913,29 @@ class QueueSystem(commands.Cog):
     @commands.command(name = "QSTest")
     async def queueTest(self, ctx):
 
-       await ctx.send(embed = discord.Embed(description = f"{PIOM}"))
+        dictA =  {   'P1': 3525 , 'P2': 3000 , 
+                    'P3': 3205 , 'P4': 3643 , 
+                    'P5': 3420 
+                }
 
+        dictB = {   'P6': 3405 , 'P7': 3643 , 
+                    'P8': 3500 , 'P9': 3000 , 
+                    'P10':3209
+                }
+        getIndivELO(dictA, dictB)
     #### TESTING PURPOSES ####
+
+
+
+
+################################################################################################
+################################################################################################
+#################### Non-Async Functions #######################################################
+################################################################################################
+################################################################################################
+
+
+
 
 
 
@@ -895,6 +949,53 @@ def generateMatchID():
     alphabet = string.ascii_letters + string.digits
     matchID = ''.join(secrets.choice(alphabet) for i in range(8))
     return matchID
+
+def getIndivELO(winTeam, lossTeam):
+
+    winTeamNewRating = {}
+    lossTeamNewRating = {}
+
+    ExpecWProb = lambda A,B: round(1/(1+math.pow(10,(B-A)/EXPO_VAL)),2)
+
+    newRating = lambda WL, Ra, Rb: round(Ra + K_VAL*(WL - ExpecWProb(Ra,Rb)))
+
+    medianW = statistics.median(list(winTeam.values()))
+    medianL = statistics.median(list(lossTeam.values()))
+
+
+
+    for playerID in winTeam:
+        curRatingW = winTeam[playerID]
+        newRatingW = newRating(1, curRatingW, medianL)
+
+        winTeamNewRating[playerID] = newRatingW
+
+    for playerID in lossTeam:
+        curRatingL = lossTeam[playerID]
+        newRatingL = newRating(0, curRatingL, medianW)
+
+        lossTeamNewRating[playerID] = newRatingL
+
+    """
+    print(f"Winning Team Changes: {winTeamNewRating}")
+    print(f"Losing Team Changes: {lossTeamNewRating}")
+
+    print("\n")
+
+    print("\nWin changes:")
+    for playerID in winTeam:
+        print(str(playerID) + ": " + str(winTeamNewRating[playerID] - winTeam[playerID]))
+
+    print("\nLoss changes:")
+    for playerID in lossTeam:
+        print(str(playerID) + ": " + str(lossTeamNewRating[playerID] - lossTeam[playerID]))
+    """
+
+
+    return winTeamNewRating, lossTeamNewRating
+
+
+
 
 def checkCorrectScore(score):
     myRegex = re.compile("^(\d)-(\d)$")
