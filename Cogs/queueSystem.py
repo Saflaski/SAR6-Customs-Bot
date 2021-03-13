@@ -1052,7 +1052,6 @@ def getIndivELO(winTeam, lossTeam):
 def ongMatchFileOps(mode, MID, givenDict = None):
     #mode = W for Write, D for Delete, R for Read/Finding a match using MID
     MID = str(MID)
-    #Check if MatchHistoryFile exists, if doesn't exist, then it creates one
     if not os.path.exists("ONGOING_MATCHES.txt"):
         print("\n\nFATAL ERROR: ONGOING_MATCHES.txt doesn't exist\n\n" )
         print("Creating new file: ONGOING_MATCHES.txt")
