@@ -36,16 +36,16 @@ class Leaderboard(commands.Cog):
 
 
 
-	@commands.command(name = "lb")
+	@commands.command(aliases = ["leaderboard", "leaderboards"])
 	@commands.guild_only()
-	async def lb(self, ctx):
+	async def lb(self, ctx, myPos = None):
 
 		print(f"{ctx.author} used lb")
 
-		aliveTime = 40					#How long to enable page switching (seconds)
+		aliveTime = 60					#How long to enable page switching (seconds)
 
 		currentSkip = 0					#No. of documents currently skipped
-		limitPerPage = 5				#No. of documents to show per page
+		limitPerPage = 10				#No. of documents to show per page
 
 		#mydoc = dbCol.find().skip(currentSkip).limit(limitPerPage).sort("ELO",1)
 
@@ -113,7 +113,7 @@ class Leaderboard(commands.Cog):
 
 			try:
 				#Watches out for author to add the proper reaction
-				reaction, user = await self.client.wait_for('reaction_add', timeout = 30.0, check = check)
+				reaction, user = await self.client.wait_for('reaction_add', timeout = 60.0, check = check)
 
 			except asyncio.TimeoutError:
 				pass					#I forgot why I added timeout above and asyncio.TimeoutError here
