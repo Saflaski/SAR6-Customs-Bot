@@ -59,9 +59,13 @@ voiceChannelCategoryID = 816634104362827786     #Used later to get voiceChannelC
 voiceChannelCategory = None                     #Category into which to make VCs
 
 
+#Roles
+adminRole = "R6C Admin"
+userRole = "R6C"
+
 #Unicode Reaction Emojis
 check_mark = '\u2705'
-cross_mark = '\u274E'
+cross_mark = '\u274C'
 digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
 
 #SAR6C Map Pool
@@ -106,7 +110,7 @@ class QueueSystem(commands.Cog):
         myGuild = self.client.get_guild(813695785928884264)
         voiceChannelCategory = discord.utils.get(myGuild.categories, id = voiceChannelCategoryID)
 
-
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["joinq","join"])
     async def joinQueue(self, ctx, member: discord.Member):
 
@@ -138,24 +142,15 @@ class QueueSystem(commands.Cog):
         print(f"{member} has joined the Global Queue")
         await ctx.message.add_reaction(check_mark)
 
-        """
-        if discID not in GQL:               #Checks if user is in Global Queue
-            if discID not in PIOM:          #Checks if user is in Match
-                GQL.append(discID)
-                print(f"{member} has joined the Global Queue")
+    @joinQueue.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
-                #queueEmbed = discord.Embed(color = embedSideColor)
-                #queueEmbed.add_field(name = f"Added to Global Queue ({len(GQL)}/{playersPerLobby})" , value = f"<@{member.id}>", inline = True)
-                await ctx.message.add_reaction(check_mark)
-                #await ctx.send(embed = queueEmbed)
-            else:
-                queueEmbed = discord.Embed(description = f"You are already in a match", color = embedSideColor)
-                await ctx.send(embed = queueEmbed)
-        else:
-            queueEmbed = discord.Embed(description = f"You are already in the  Global Queue", color = embedSideColor)
-            await ctx.send(embed = queueEmbed)
-        """
 
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["showq", "queue"])
     async def showQueue(self, ctx):
         global GQL
@@ -186,10 +181,16 @@ class QueueSystem(commands.Cog):
             queueEmbed.add_field(name = "Players in Queue: 0", value = "** **")
             await ctx.send(embed = queueEmbed)
 
+    @showQueue.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
 
 
-
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["leaveq","leave"])
     async def leaveQueue(self, ctx, member: discord.Member):
 
@@ -206,8 +207,14 @@ class QueueSystem(commands.Cog):
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
             await ctx.send(embed = queueEmbed)
 
+    @leaveQueue.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
-
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["showM", "getMatch", "getM", "match"])
     async def showMatch(self, ctx, matchID):
 
@@ -268,10 +275,15 @@ class QueueSystem(commands.Cog):
 
     @showMatch.error
     async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+        elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Invalid Usage, try: `.getMatch <match ID>`")
 
 
+    @commands.has_any_role(adminRole)
     @commands.command(name = "setELO")
     async def setELO(self, ctx, member : discord.Member, ELO : int):
 
@@ -290,133 +302,13 @@ class QueueSystem(commands.Cog):
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.setELO <@discord ID> <ELO>`")
-
-    """
-    @commands.command(name = "changepoints")
-    async def changePoints(self, ctx, givenMode, matchID, givenScore ):
-
-        givenScore = checkCorrectScore(givenScore)
-
-        if "incorrect" in givenScore:
-            await ctx.send(embed = discord.Embed(description = "Score in wrong format", color = 0xff0000))
-            return None
-
-        givenModeCheck = (givenMode == "set") or (givenMode == "revert")
-        if not givenModeCheck:
-            myEmbed = discord.Embed(description = "Invalid mode, use \"revert\" or \"set\"", color = 0xff0000)
-            await ctx.send(embed = myEmbed)
-            return None
-
-        if "OT" in givenScore:
-            if givenMode == "revert":
-                awardedPoints = pOTLoss
-                deductedPoints = pOTWin
-
-            elif givenMode == "set":
-                awardedPoints = pOTWin
-                deductedPoints = pOTLoss
-
-        elif "nonOT":
-            if givenMode == "revert":
-                awardedPoints = pNonOTLoss
-                deductedPoints = pNonOTWin
-
-            elif givenMode == "set":
-                awardedPoints = pNonOTWin
-                deductedPoints = pNonOTLoss
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
 
-        #Prepare queries to find players
-        matchDoc = matchesCol.find_one({"MID": matchID})
-
-        if matchDoc is not None:
-            teamAList = matchDoc["matchList"][:playersPerLobby//2]
-            teamBList = matchDoc["matchList"][playersPerLobby//2:]
-
-        else:
-            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
-            await ctx.send(embed = myEmbed)
-            return None
-
-        queryListA = []
-        queryListB = []
-
-        for playerDiscID in teamAList:
-            dbPlayerDic = {"discID" : playerDiscID}
-            queryListA.append(dbPlayerDic)
-
-        for playerDiscID in teamBList:
-            dbPlayerDic = {"discID" : playerDiscID}
-            queryListB.append(dbPlayerDic)
-
-
-
-        dbCol.update_many({"$or" : queryListA}, { "$inc" : {"ELO" : awardedPoints}})
-        dbCol.update_many({"$or" : queryListB}, { "$inc" : {"ELO" : deductedPoints}})
-
-        myEmbed = discord.Embed(description = "Succesfully changed points", color = 0x00ff00)
-        await ctx.send(embed = myEmbed)
-
-    @changePoints.error
-    async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Invalid Usage, try: `.changepoints <set/revert> <match ID> <score>`")
-
-
-    @commands.command(name = "updatescore")
-    async def updateScore(self, ctx, matchID, givenScore):
-
-        #Prepare queries to find players
-        matchDoc = matchesCol.find_one({"MID": matchID})
-
-        if matchDoc is not None:
-            teamAList = matchDoc["matchList"][:playersPerLobby//2]
-            teamBList = matchDoc["matchList"][playersPerLobby//2:]
-
-        else:
-            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
-            await ctx.send(embed = myEmbed)
-            return None
-
-        if "incorrect" not in checkCorrectScore(givenScore) or givenScore == "C-C" or givenScore == "0-0":
-            matchesCol.update_one({"MID" : matchID}, {"$set" : {"score" : givenScore}})
-            await ctx.send(embed = discord.Embed(description = f"Succesfully set score: {givenScore}", color = 0x00ff00))
-
-        else:
-            await ctx.send(embed = discord.Embed(description = "Incorrect score format", color = 0xff0000))
-
-
-    @updateScore.error
-    async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Invalid Usage, try: `.updatescore <match ID> <score>`")
-
-    @commands.command(name = "closematch")
-    async def closematch(self, ctx, matchID):              #Free players of a certain match from PIOM
-
-        global PIOM
-
-        matchDoc = matchesCol.find_one({"MID": matchID})
-
-        if matchDoc is not None:
-            matchList = matchDoc["matchList"]
-            currentResult = matchDoc["score"]
-
-        else:
-            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
-            await ctx.send(embed = myEmbed)
-            return None
-
-        del PIOM[matchID]
-        await ctx.send(embed = discord.Embed(title = f"Closed match: {matchID}", color = 0x00ff00))
-
-
-    @closematch.error
-    async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Invalid Usage, try: `.closematch <match ID>`")
-    """
-
+    @commands.has_any_role(adminRole)
     @commands.command(name = "cancelmatch")
     async def cancelMatch(self, ctx, matchID):
         global PIOM
@@ -432,7 +324,6 @@ class QueueSystem(commands.Cog):
         matchDoc = matchesCol.find_one({"MID" : matchID})
         if matchDoc is not None:
             matchesCol.update({"MID" : matchID},{"$set" : {"score" : "C-C"}})
-            (f"Updated DB for score: {match_score}")
             fString += "Updated score to C-C. "
 
         #Remove the matchID from PIOM
@@ -440,13 +331,14 @@ class QueueSystem(commands.Cog):
             del PIOM[matchID]
             print(f"Deleted {matchID} from PIOM")
             fString += "Freed players. "
-                
+
         #Remove VCs
         if matchID in GVC:
                 try:
                     for VC in GVC[matchID]:
                         VC_Object = self.client.get_channel(VC)
                         await VC_Object.delete()
+                        del GVC[matchID]
                     fString += "Deleted VCs. "
                 except Exception as e:
                     print(e)
@@ -454,8 +346,16 @@ class QueueSystem(commands.Cog):
 
         await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
 
+    @cancelMatch.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.cancelmatch <match ID>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
-
+    @commands.has_any_role(adminRole)
     @commands.command(name = "forceresult")
     async def forceAddResult(self, ctx, matchID, score):
         global GVC
@@ -469,7 +369,7 @@ class QueueSystem(commands.Cog):
         #Update Match Score
         #Check and remove from PIOM
         #Check and remove VCs
-        
+
         #Check score validity
         teamResult = checkCorrectScore(score)
 
@@ -494,6 +394,7 @@ class QueueSystem(commands.Cog):
             MID = matchDoc["MID"]
             teamAList = matchDoc["matchList"][:playersPerLobby//2]
             teamBList = matchDoc["matchList"][playersPerLobby//2:]
+            currentMatchScore = matchDoc["score"]
             teamACaptain = teamAList[0]
             teamBCaptain = teamBList[0]
 
@@ -530,7 +431,7 @@ class QueueSystem(commands.Cog):
 
         try:
             embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = False )
-            sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
+            sentEmbed = await ctx.send(content = f"Captains: <@{winCapt.id}> , <@{lossCapt.id}>", embed = embed)
 
         except Exception as e:
             print(e)
@@ -540,11 +441,11 @@ class QueueSystem(commands.Cog):
         fString = ""    #Used to send command result to admin
 
         #Check if the match is still going on
-        if currentMatchScore != "0-0" or currentMatchScore != "C-C":        #Elo Reversion required before updation
-            
+        if currentMatchScore != "0-0" and currentMatchScore != "C-C":        #Elo Reversion required before updation
+
             #Get appropriate Elo changes to 'revert' everyone's Elos according to pre-match Elos
             curTeamResult = checkCorrectScore(currentMatchScore)        #Parse the old match score
-            
+
             if curTeamResult[1] > curTeamResult[2]:
                 #Team A won
                 curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False)
@@ -569,7 +470,7 @@ class QueueSystem(commands.Cog):
         match_score = str(f"{teamResult[1]}-{teamResult[2]}")
         matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
         (f"Updated DB for score: {match_score}")
-        fString += "Updated Database for Score"
+        fString += "Updated Database for Score. "
 
 
 
@@ -578,13 +479,14 @@ class QueueSystem(commands.Cog):
             del PIOM[MID]
             print(f"Deleted {MID} from PIOM")
             fString += "Freed players. "
-                
+
         #Remove VCs
         if matchID in GVC:
                 try:
                     for VC in GVC[matchID]:
                         VC_Object = self.client.get_channel(VC)
                         await VC_Object.delete()
+                        del GVC[matchID]
                     fString += "Deleted VCs. "
                 except Exception as e:
                     print(e)
@@ -592,41 +494,16 @@ class QueueSystem(commands.Cog):
 
         await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
 
+    @forceAddResult.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.forceresult <match ID> <score>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
-
-    """
-    @commands.command(name = "delvc")
-    async def deleteVC(self, ctx, matchID = ""):        #Deletes voice channels generated because of a certain match
-
-        global GVC
-        matchDoc = matchesCol.find_one({"MID": matchID})
-
-        if matchDoc is not None:
-            matchList = matchDoc["matchList"]
-
-        else:
-            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
-            await ctx.send(embed = myEmbed)
-            return None
-
-        teamACaptain = matchDoc["matchList"][:playersPerLobby//2][0]
-        teamBCaptain = matchDoc["matchList"][playersPerLobby//2:][0]
-
-        try:
-            VC1 = self.client.get_channel(GVC[teamACaptain])
-            VC2 = self.client.get_channel(GVC[teamBCaptain])
-        except Exception as e:
-            print(e)
-
-        await VC1.delete()
-        await VC2.delete()
-
-        del GVC[teamACaptain]
-        del GVC[teamBCaptain]
-
-        print(f"Deleted VCs generated by match: {matchID}")
-    """
-
+    @commands.has_any_role(adminRole)
     @commands.command(name = "freeglobal")
     async def freeQueue(self, ctx):
 
@@ -635,6 +512,14 @@ class QueueSystem(commands.Cog):
         await ctx.send("Cleared Global Queue")
         print("Removed players from GQL")
 
+    @freeQueue.error
+    async def register_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
+    @commands.has_any_role(adminRole)
     @commands.command(name = "removeplayer")
     async def remFromQueue(self, ctx, member: discord.Member):
         global GQL
@@ -647,8 +532,14 @@ class QueueSystem(commands.Cog):
     @remFromQueue.error
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-            await ctx.send("Invalid Usage, try: `.rpg <@discord ID>`")
+            await ctx.send("Invalid Usage, try: `.removeplayer <@discord ID>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
+
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(name = "result")
     async def addManualResult(self, ctx, score):
         global PIOM
@@ -737,9 +628,11 @@ class QueueSystem(commands.Cog):
             if ctx.author.id in teamAList:
                 authorTeamList = teamAList
                 oppTeamList = teamBList
+                DB_score = score
             else:
                 authorTeamList = teamBList
                 oppTeamList = teamAList
+                DB_score = score[::-1]      #Reverse the score
 
             #Fetch the member objects for each captain
             authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
@@ -774,23 +667,7 @@ class QueueSystem(commands.Cog):
             #Prepare a dict of playerIDs and their pre match ELOs
             matchDict = ongMatchFileOps("R", MID)
 
-            winTeamDict = {}
-            lossTeamDict = {}
-            winTeamChange = {}
-            lossTeamChange = {}
-
-            for playerID in winningTeam:
-                winTeamDict[playerID] = matchDict[playerID]
-            for playerID in losingTeam:
-                lossTeamDict[playerID] = matchDict[playerID]
-
-            #Use ELO Rating System to get new ELOs
-            newWinTeamDict, newLossTeamDict = getIndivELO(winTeamDict, lossTeamDict)
-
-            for playerID in newWinTeamDict:
-                winTeamChange[playerID] = newWinTeamDict[playerID] - winTeamDict[playerID]
-            for playerID in newLossTeamDict:
-                lossTeamChange[playerID] = newLossTeamDict[playerID] - lossTeamDict[playerID]
+            winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True)
 
             try:
                 embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = True )
@@ -801,15 +678,6 @@ class QueueSystem(commands.Cog):
             except Exception as e:
                 print(e)
 
-
-            """
-            try:
-                embed = getResultEmbed(MID, winningTeam, losingTeam, winCapt, lossCapt, isOT, isPending = True)
-                sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
-                await sentEmbed.add_reaction(check_mark)
-            except Exception as e:
-                print(e)
-            """
             async def confirmMatch():
 
                 #Update Embed Message
@@ -822,9 +690,8 @@ class QueueSystem(commands.Cog):
                 queryListLost = []
 
                 #Update Match Score in Database
-                match_score = str(f"{teamResult[1]}-{teamResult[2]}")
-                matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
-                print(f"Updated DB for score: {match_score}")
+                matchesCol.update({"MID" : MID},{"$set" : {"score" : DB_score}})
+                print(f"Updated DB for score: {DB_score}")
 
                 #Update Player Scores in Database
                 for playerID in winTeamChange:
@@ -833,20 +700,19 @@ class QueueSystem(commands.Cog):
                     dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
 
                 #Remove the matchID from PIOM
-                del PIOM[MID]
-                
+                if MID in PIOM:
+                    del PIOM[MID]
+                    print(f"Deleted {MID} from PIOM")
+
                 #Remove VCs
-                try:
-                    VC1 = self.client.get_channel(GVC[winningTeam[0]])
-                    VC2 = self.client.get_channel(GVC[losingTeam[0]])
-                except Exception as e:
-                    print(e)
+                if MID in GVC:
+                    try:
+                        for VC in GVC[MID]:
+                            VC_Object = self.client.get_channel(VC)
+                            await VC_Object.delete()
 
-                await VC1.delete()
-                await VC2.delete()
-
-                del GVC[winningTeam[0]]
-                del GVC[losingTeam[0]]
+                    except Exception as e:
+                        print(e)
 
                 print(f"Removed players and VCs from ongoing list \nMatch Closed: {MID}")
 
@@ -893,12 +759,14 @@ class QueueSystem(commands.Cog):
             await sentEmbed.clear_reactions()   #Clears reactions after timeout has happened/time limit has elapsed
 
 
-
-
     @addManualResult.error
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.result #-#` ,Eg.: `.result 7-5`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
 
 
     @tasks.loop(seconds = 1)
@@ -1049,8 +917,12 @@ class QueueSystem(commands.Cog):
         else:
             print("Map not set")
 
-    #### TESTING PURPOSES ####
+        #Change the Embed to "GLHF"
+        embedMessage.set_footer(text = "GLHF for your match!", icon_url = footerIcoURL)
+        await msg.edit(embed = embedMessage)
 
+    #### TESTING PURPOSES ####
+    @commands.has_any_role(adminRole)
     @commands.command(name = "QSTest")
     async def queueTest(self, ctx, mode, MID, Dict = None):
 
@@ -1097,7 +969,7 @@ def generateMatchID():
     return matchID
 
 def getChangeDict(matchDict, winningTeam, losingTeam, setELO):
-    
+
     if setELO:
         convFactor = 1
     else:
@@ -1312,7 +1184,7 @@ def getMatchEmbed(matchID, playerInfo , dicTeamA, dicTeamB, captainTeamA, captai
     myEmbed.add_field(name = "MatchID: ", value = matchID, inline = True)
     myEmbed.add_field(name = f"Team A (Captain: {playerInfo[captainTeamA][0]}):", value = teamAstr, inline = False)
     myEmbed.add_field(name = f"Team B (Captain: {playerInfo[captainTeamB][0]}):", value = teamBstr, inline = False)
-    myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+    myEmbed.set_footer(text = "React with given emoji to BAN the corresponding map", icon_url = footerIcoURL)
 
     return myEmbed
 
