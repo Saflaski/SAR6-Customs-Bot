@@ -415,6 +415,198 @@ class QueueSystem(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Invalid Usage, try: `.closematch <match ID>`")
 
+    @commands.command(name = "cancelmatch")
+    async def cancelMatch(self, ctx, matchID):
+        global PIOM
+        global GVC
+        #Sets the Database score to C-C
+        #Doesn't update Elo
+        #Check and remove from PIOM
+        #Check and remove VCs
+
+        #Update Match Score in Database
+        fString = ""
+
+        matchDoc = matchesCol.find_one({"MID" : matchID})
+        if matchDoc is not None:
+            matchesCol.update({"MID" : matchID},{"$set" : {"score" : "C-C"}})
+            (f"Updated DB for score: {match_score}")
+            fString += "Updated score to C-C. "
+
+        #Remove the matchID from PIOM
+        if matchID in PIOM:
+            del PIOM[matchID]
+            print(f"Deleted {matchID} from PIOM")
+            fString += "Freed players. "
+                
+        #Remove VCs
+        if matchID in GVC:
+                try:
+                    for VC in GVC[matchID]:
+                        VC_Object = self.client.get_channel(VC)
+                        await VC_Object.delete()
+                    fString += "Deleted VCs. "
+                except Exception as e:
+                    print(e)
+                    fString +="Could not delete VCs"
+
+        await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
+
+
+
+    @commands.command(name = "forceresult")
+    async def forceAddResult(self, ctx, matchID, score):
+        global GVC
+        global PIOM
+
+        #Verify the score given
+        #Check if the match is still going on
+        #Get values from Database (and ignore if it's finished) and files
+        #Send a result embed with isPending = False
+        #Update Elo
+        #Update Match Score
+        #Check and remove from PIOM
+        #Check and remove VCs
+        
+        #Check score validity
+        teamResult = checkCorrectScore(score)
+
+        if "incorrect" in teamResult:
+            await ctx.send("Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`")
+            print(f"{ctx.author} tried invalid match result code")
+            return None
+
+        else:
+            print(f"{ctx.author} used forceresult with correct match score")
+
+
+        matchDoc = matchesCol.find_one({"MID" : matchID})
+        MID = ""    #Match ID
+        currentMatchScore = ""      #Used later to check if match is still going on
+        teamACaptain = ""
+        teamBCaptain = ""
+        teamAList = []
+        teamBList = []
+
+        if matchDoc is not None:
+            MID = matchDoc["MID"]
+            teamAList = matchDoc["matchList"][:playersPerLobby//2]
+            teamBList = matchDoc["matchList"][playersPerLobby//2:]
+            teamACaptain = teamAList[0]
+            teamBCaptain = teamBList[0]
+
+        else:
+            myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
+            await ctx.send(embed = myEmbed)
+            print("\n\nFATAL ERROR: Failure 1 at addManualResult\n\n")
+            return None
+
+        #Find which team won
+        if teamResult[1] > teamResult[2]:
+            #Team A won
+            winningTeam = teamAList
+            losingTeam = teamBList
+        else:
+            #Team B won
+            winningTeam = teamBList
+            losingTeam = teamAList
+
+        winCaptID = winningTeam[0]
+        lossCaptID = losingTeam[0]
+
+        winCapt = await self.client.fetch_user(winCaptID)
+        lossCapt = await self.client.fetch_user(lossCaptID)
+
+
+
+        print(f"Sending Match Result Confirmed (ADMIN) Panel:{MID} ")
+
+        matchDict = ongMatchFileOps("R", MID)
+
+        winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True)
+
+
+        try:
+            embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = False )
+            sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
+
+        except Exception as e:
+            print(e)
+
+
+        ## Check and update Internal and Database values
+        fString = ""    #Used to send command result to admin
+
+        #Check if the match is still going on
+        if currentMatchScore != "0-0" or currentMatchScore != "C-C":        #Elo Reversion required before updation
+            
+            #Get appropriate Elo changes to 'revert' everyone's Elos according to pre-match Elos
+            curTeamResult = checkCorrectScore(currentMatchScore)        #Parse the old match score
+            
+            if curTeamResult[1] > curTeamResult[2]:
+                #Team A won
+                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False)
+            else:
+                #Team B won
+                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
+
+            #Revert Player Elos in Database
+            for playerID in curWinChange:
+                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
+            for playerID in curLossChange:
+                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
+            fString += "Reverted Elo. "
+
+        for playerID in winTeamChange:
+            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+        for playerID in lossTeamChange:
+            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
+        fString += "Set new Elo. "
+
+        #Update Match Score in Database
+        match_score = str(f"{teamResult[1]}-{teamResult[2]}")
+        matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
+        (f"Updated DB for score: {match_score}")
+        fString += "Updated Database for Score"
+
+
+
+        #Remove the matchID from PIOM
+        if MID in PIOM:
+            del PIOM[MID]
+            print(f"Deleted {MID} from PIOM")
+            fString += "Freed players. "
+                
+        #Remove VCs
+        if matchID in GVC:
+                try:
+                    for VC in GVC[matchID]:
+                        VC_Object = self.client.get_channel(VC)
+                        await VC_Object.delete()
+                    fString += "Deleted VCs. "
+                except Exception as e:
+                    print(e)
+                    fString +="Could not delete VCs"
+
+        await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @commands.command(name = "delvc")
     async def deleteVC(self, ctx, matchID = ""):        #Deletes voice channels generated because of a certain match
 
@@ -446,7 +638,7 @@ class QueueSystem(commands.Cog):
 
         print(f"Deleted VCs generated by match: {matchID}")
 
-    @commands.command(name = "freeQ")
+    @commands.command(name = "freeglobal")
     async def freeQueue(self, ctx):
 
         global GQL
@@ -454,7 +646,7 @@ class QueueSystem(commands.Cog):
         await ctx.send("Cleared Global Queue")
         print("Removed players from GQL")
 
-    @commands.command(name = "rpg")
+    @commands.command(name = "removeplayer")
     async def remFromQueue(self, ctx, member: discord.Member):
         global GQL
 
@@ -651,14 +843,9 @@ class QueueSystem(commands.Cog):
                 for playerID in lossTeamChange:
                     dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
 
-                #Remove the matchID from PIOM and ONGOING_MATCHES.txt
+                #Remove the matchID from PIOM
                 del PIOM[MID]
-                fileOpsResult = ongMatchFileOps("D", MID)
-                if fileOpsResult == "Deleted":
-                    print("Succesfully deleted match from ONGOING_MATCHES.txt")
-                elif fileOpsResult is None:
-                    print("FATAL ERROR: Could not delete match from ONGOING_MATCHES.txt")
-
+                
                 #Remove VCs
                 try:
                     VC1 = self.client.get_channel(GVC[winningTeam[0]])
@@ -775,8 +962,7 @@ class QueueSystem(commands.Cog):
                 VC_B = await myGuild.create_voice_channel(name = f"Team: {teamB_VCName}", category = voiceChannelCategory)
 
                 #Add VCs to Global VC Dict: GVC
-                GVC[CapA_ID] = VC_A.id
-                GVC[CapB_ID] = VC_B.id
+                GVC[matchID] = [VC_A.id, VC_B.id]
 
                 #Start the map ban
                 asyncio.create_task(self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID))
@@ -920,6 +1106,35 @@ def generateMatchID():
     alphabet = string.ascii_letters + string.digits
     matchID = ''.join(secrets.choice(alphabet) for i in range(8))
     return matchID
+
+def getChangeDict(matchDict, winningTeam, losingTeam, setELO):
+    
+    if setELO:
+        convFactor = 1
+    else:
+        convFactor = -1
+
+
+    winTeamDict = {}
+    lossTeamDict = {}
+    winTeamChange = {}
+    lossTeamChange = {}
+
+    for playerID in winningTeam:
+        winTeamDict[playerID] = matchDict[playerID]
+    for playerID in losingTeam:
+        lossTeamDict[playerID] = matchDict[playerID]
+
+    #Use ELO Rating System to get new ELOs
+    newWinTeamDict, newLossTeamDict = getIndivELO(winTeamDict, lossTeamDict)
+
+    for playerID in newWinTeamDict:
+        winTeamChange[playerID] = convFactor*(newWinTeamDict[playerID] - winTeamDict[playerID])
+    for playerID in newLossTeamDict:
+        lossTeamChange[playerID] = convFactor*(newLossTeamDict[playerID] - lossTeamDict[playerID])
+
+    return winTeamChange, lossTeamChange
+
 
 def getIndivELO(winTeam, lossTeam):
 
