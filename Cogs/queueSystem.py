@@ -720,7 +720,7 @@ class QueueSystem(commands.Cog):
             def check(myreaction, myuser):
 
                 userCond = (myuser == authorTeamCaptain) or (myuser == oppTeamCaptain)
-                reactionCond = str(myreaction.emoji) == check_mark
+                reactionCond = str(myreaction.emoji) == check_mark or str(myreaction.emoji) == cross_mark
                 return (userCond and reactionCond)
 
             #Captain confirmation boolean values for each team
@@ -738,10 +738,17 @@ class QueueSystem(commands.Cog):
                 #print(f"{myuser} did {myreaction}")
 
                 if check(myreaction, myuser):
-                    if myuser == authorTeamCaptain:
+                    if str(myreaction.emoji) == cross_mark:
+                        embed.set_footer(text = f"Result denied by {myuser}")
+                        await sentEmbed.edit(embed = embed)
+                        await sentEmbed.clear_reactions()
+                        return None
+
+                    elif myuser == authorTeamCaptain:
                         authTeamConf = True
                     elif myuser == oppTeamCaptain:
                         oppTeamConf = True
+
 
                 #Check if captains have verified
                 if authTeamConf and oppTeamConf:
