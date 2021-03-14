@@ -71,7 +71,7 @@ cross_mark = '\u274C'
 digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
 
 #SAR6C Map Pool
-MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "Theme Park"]
+MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "Chalet"]
 
 #ELO System Values
 K_VAL = 75
@@ -145,7 +145,7 @@ class QueueSystem(commands.Cog):
         await ctx.message.add_reaction(check_mark)
 
     @joinQueue.error
-    async def register_error(self, ctx, error):
+    async def joinQueue_error(self, ctx, error):
         if isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
@@ -184,7 +184,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = queueEmbed)
 
     @showQueue.error
-    async def register_error(self, ctx, error):
+    async def showQueue_error(self, ctx, error):
         if isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
@@ -210,7 +210,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = queueEmbed)
 
     @leaveQueue.error
-    async def register_error(self, ctx, error):
+    async def leaveQueue_error(self, ctx, error):
         if isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
@@ -276,7 +276,7 @@ class QueueSystem(commands.Cog):
         await ctx.send(embed = myEmbed)
 
     @showMatch.error
-    async def register_error(self, ctx, error):
+    async def showMatch_error(self, ctx, error):
         if isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
@@ -285,8 +285,53 @@ class QueueSystem(commands.Cog):
             await ctx.send("Invalid Usage, try: `.getMatch <match ID>`")
 
 
+    @commands.command(aliases = ["showongoing", "ongoingmatches", "ongoing"])
+    async def showOngoingMatches(self, ctx):
+
+        #Get all matches with 0-0 score with most recent as first
+        matchDocs = matchesCol.find({"score": "0-0"}).sort([("_id", -1)])   
+
+        myEmbed = discord.Embed(title = "Ongoing Matches", color = embedSideColor)
+
+        counter = 1
+        if matchDocs.count() != 0:
+            for match in matchDocs:
+                matchID = match["MID"]
+                try:
+                    matchMap = match["map"]
+                except:
+                    matchMap = "Not selected"
+
+                teamACap = match["matchList"][playersPerLobby//2:][0]
+                teamBCap = match["matchList"][:playersPerLobby//2][0]
+
+                #teamACap = await self.client.fetch_user(teamACap)
+                #teamBCap = await self.client.fetch_user(teamBCap)
+
+                myEmbed.add_field(name = f"{counter}. {matchID}", value = f"Team <@{teamACap}> vs Team <@{teamBCap}> \nMap: {matchMap}")
+                counter += 1
+
+            myEmbed.set_footer(text = "Most Recent matches at the top")
+        else:
+            myEmbed.add_field(name = "None", value = "** **")
+        await ctx.send(embed = myEmbed)
+
+
+
+    @showOngoingMatches.error
+    async def showOngoingMatches_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
+
+
+
+
+
     @commands.has_any_role(adminRole)
-    @commands.command(name = "setELO")
+    @commands.command(aliases = ["setElo", "setelo"])
     async def setELO(self, ctx, member : discord.Member, ELO : int):
 
         opResult = dbCol.update_one({"discID" : member.id}, { "$set" : {"ELO" : ELO}})
@@ -301,7 +346,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = successEmbed)
 
     @setELO.error
-    async def register_error(self, ctx, error):
+    async def setELO_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.setELO <@discord ID> <ELO>`")
         elif isinstance(error, commands.MissingAnyRole):
@@ -356,6 +401,42 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
             pass
+
+    @commands.has_any_role(adminRole)
+    @commands.command(name = "freeglobal")
+    async def freeQueue(self, ctx):
+
+        global GQL
+        GQL.clear()
+        await ctx.send("Cleared Global Queue")
+        print("Removed players from GQL")
+
+    @freeQueue.error
+    async def freeQueue_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
+    @commands.has_any_role(adminRole)
+    @commands.command(name = "removeplayer")
+    async def remFromQueue(self, ctx, member: discord.Member):
+        global GQL
+
+        GQL.remove(member.id)
+
+        await ctx.send(f"Removed {member} from Global Queue")
+        print(f"Removed from GQL: {member}")
+
+    @remFromQueue.error
+    async def remFromQueue_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.removeplayer <@discord ID>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
 
     @commands.has_any_role(adminRole)
     @commands.command(name = "forceresult")
@@ -500,41 +581,6 @@ class QueueSystem(commands.Cog):
     async def register_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.forceresult <match ID> <score>`")
-        elif isinstance(error, commands.MissingAnyRole):
-            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
-        elif isinstance(error, commands.NoPrivateMessage):
-            pass
-
-    @commands.has_any_role(adminRole)
-    @commands.command(name = "freeglobal")
-    async def freeQueue(self, ctx):
-
-        global GQL
-        GQL.clear()
-        await ctx.send("Cleared Global Queue")
-        print("Removed players from GQL")
-
-    @freeQueue.error
-    async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingAnyRole):
-            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
-        elif isinstance(error, commands.NoPrivateMessage):
-            pass
-
-    @commands.has_any_role(adminRole)
-    @commands.command(name = "removeplayer")
-    async def remFromQueue(self, ctx, member: discord.Member):
-        global GQL
-
-        GQL.remove(member.id)
-
-        await ctx.send(f"Removed {member} from Global Queue")
-        print(f"Removed from GQL: {member}")
-
-    @remFromQueue.error
-    async def register_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-            await ctx.send("Invalid Usage, try: `.removeplayer <@discord ID>`")
         elif isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
