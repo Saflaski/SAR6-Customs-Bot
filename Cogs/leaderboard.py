@@ -79,7 +79,7 @@ class Leaderboard(commands.Cog):
 				uRank = str(currentSkip + tempCounter) + '.'
 
 				#To query each doc and append details to the body of Embed Object
-				embedContentString += f"{uRank.ljust(4)} **{x['discName']}**\nUplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n"
+				embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
 
 
 			#Generate Embed Object
