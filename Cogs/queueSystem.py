@@ -400,7 +400,7 @@ class QueueSystem(commands.Cog):
         await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
 
     @cancelMatch.error
-    async def register_error(self, ctx, error):
+    async def cancelMatch_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.cancelmatch <match ID>`")
         elif isinstance(error, commands.MissingAnyRole):
@@ -586,7 +586,7 @@ class QueueSystem(commands.Cog):
         await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
 
     @forceAddResult.error
-    async def register_error(self, ctx, error):
+    async def forceAddResult_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.forceresult <match ID> <score>`")
         elif isinstance(error, commands.MissingAnyRole):
@@ -833,7 +833,7 @@ class QueueSystem(commands.Cog):
 
 
     @addManualResult.error
-    async def register_error(self, ctx, error):
+    async def addManualResult_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.result #-#` ,Eg.: `.result 7-5`")
         elif isinstance(error, commands.MissingAnyRole):
@@ -999,19 +999,9 @@ class QueueSystem(commands.Cog):
     @commands.command(name = "QSTest")
     async def queueTest(self, ctx, mode, MID, Dict = None):
 
-        dictA =  {   'P1': 3525 , 'P2': 3000 ,
-                    'P3': 3205 , 'P4': 3643 ,
-                    'P5': 3420
-                }
-
-        dictB = {   'P6': 3405 , 'P7': 3643 ,
-                    'P8': 3500 , 'P9': 3000 ,
-                    'P10':3209
-                }
-        #getIndivELO(dictA, dictB)
-        result = ongMatchFileOps(mode, MID, Dict)
-        print(result)
-        print(type(result))
+        print(f"GVC: {GVC}")
+        print(f"GQL: {GQL}")
+        print(f"PIOM: {PIOM}")
 
 
     #### TESTING PURPOSES ####
