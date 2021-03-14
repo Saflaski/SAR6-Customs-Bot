@@ -338,7 +338,7 @@ class QueueSystem(commands.Cog):
                     for VC in GVC[matchID]:
                         VC_Object = self.client.get_channel(VC)
                         await VC_Object.delete()
-                        del GVC[matchID]
+                    del GVC[matchID]
                     fString += "Deleted VCs. "
                 except Exception as e:
                     print(e)
@@ -486,7 +486,7 @@ class QueueSystem(commands.Cog):
                     for VC in GVC[matchID]:
                         VC_Object = self.client.get_channel(VC)
                         await VC_Object.delete()
-                        del GVC[matchID]
+                    del GVC[matchID]
                     fString += "Deleted VCs. "
                 except Exception as e:
                     print(e)
@@ -710,6 +710,7 @@ class QueueSystem(commands.Cog):
                         for VC in GVC[MID]:
                             VC_Object = self.client.get_channel(VC)
                             await VC_Object.delete()
+                        del GVC[MID]
 
                     except Exception as e:
                         print(e)
