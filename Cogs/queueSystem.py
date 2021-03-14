@@ -114,11 +114,12 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["joinq","join"])
-    async def joinQueue(self, ctx, member: discord.Member):
+    async def joinQueue(self, ctx, member : discord.Member):
 
         global GQL
 
         #Adds user to the queue
+        #member = ctx.author
         discID = member.id
 
 
@@ -194,7 +195,9 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["leaveq","leave"])
-    async def leaveQueue(self, ctx, member: discord.Member):
+    async def leaveQueue(self, ctx, member : discord.Member):
+
+        #member = ctx.author
 
         global GQL
 
@@ -269,8 +272,8 @@ class QueueSystem(commands.Cog):
         for playerDiscID in teamBList:
             teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
 
-        embedDescription = (    "**ID:** " + str(matchID) + "\n" 
-                                + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n" 
+        embedDescription = (    "**ID:** " + str(matchID) + "\n"
+                                + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
                                 + "**Map:** " + matchMap
                              )
 
@@ -295,7 +298,7 @@ class QueueSystem(commands.Cog):
     async def showOngoingMatches(self, ctx):
 
         #Get all matches with 0-0 score with most recent as first
-        matchDocs = matchesCol.find({"score": "0-0"}).sort([("_id", -1)])   
+        matchDocs = matchesCol.find({"score": "0-0"}).sort([("_id", -1)])
 
         myEmbed = discord.Embed(title = "Ongoing Matches", color = embedSideColor)
 
@@ -727,11 +730,11 @@ class QueueSystem(commands.Cog):
 
 
             #Prepare a dict of playerIDs and their pre match ELOs
-            
+
             matchDict = ongMatchFileOps("R", MID)
-            
+
             winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True)
-            
+
 
 
             try:
