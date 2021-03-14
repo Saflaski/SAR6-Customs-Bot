@@ -122,33 +122,36 @@ class Users(commands.Cog):
 		#Get match history info
 		matchHistoryDoc = matchesCol.find({"matchList" : userDiscID}).sort([("_id", -1)]).limit(10)
 		
-		WLString = ""
-		for match in matchHistoryDoc:
-			matchScore = match["score"]
+		if matchHistoryDoc.count() != 0:
+			WLString = ""
+			for match in matchHistoryDoc:
+				matchScore = match["score"]
 
-			if matchScore != "C-C" and matchScore != "0-0":
-				if userDiscID in match["matchList"][playersPerLobby//2:]:
-					matchScore = matchScore[::-1]		#Reverse the score
+				if matchScore != "C-C" and matchScore != "0-0":
+					if userDiscID in match["matchList"][playersPerLobby//2:]:
+						matchScore = matchScore[::-1]		#Reverse the score
 
-				authScore, oppScore = matchScore.split("-")
-				authScore, oppScore = int(authScore), int(oppScore)
-				
-				if authScore > oppScore:
-					WLString += "W-"
+					authScore, oppScore = matchScore.split("-")
+					authScore, oppScore = int(authScore), int(oppScore)
+					
+					if authScore > oppScore:
+						WLString += "W-"
+					else:
+						WLString += "L-"
+
+				elif matchScore == "C-C":
+					WLString += "C-"
+
+				elif matchScore == "0-0":
+					WLString += "GNO-"		#When reversed, this will spell "ONG" ie, Ongoing
+
 				else:
-					WLString += "L-"
+					print("\nERROR: Invalid match score in database at getUserInfo in users.py\n")
+					return None
 
-			elif matchScore == "C-C":
-				WLString += "C-"
-
-			elif matchScore == "0-0":
-				WLString += "GNO-"		#When reversed, this will spell "ONG" ie, Ongoing
-
-			else:
-				print("\nERROR: Invalid match score in database at getUserInfo in users.py\n")
-				return None
-
-		WLString = WLString.rstrip("-")[::-1]
+			WLString = WLString.rstrip("-")[::-1]
+		else:
+			WLString = "No matches found"
 
 
 		myEmbed = discord.Embed(title = f"{userDiscName}", color = embedSideColor)
