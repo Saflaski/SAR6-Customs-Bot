@@ -231,6 +231,10 @@ class QueueSystem(commands.Cog):
             teamACaptain = teamAList[0]
             teamBCaptain = teamBList[0]
 
+            try:
+                matchMap = matchDoc["map"]
+            except:
+                matchMap = "Not Selected"
 
         else:
             myEmbed = discord.Embed(descripion = "Match not found", color = embedSideColor)
@@ -265,8 +269,10 @@ class QueueSystem(commands.Cog):
         for playerDiscID in teamBList:
             teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
 
-        embedDescription = ( "**ID:** " + str(matchID) + "\n**Score:** "
-                                + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B" )
+        embedDescription = (    "**ID:** " + str(matchID) + "\n" 
+                                + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n" 
+                                + "**Map:** " + matchMap
+                             )
 
         myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
         #myEmbed.add_field(name = "Details:", value = f"ID: {matchID}\nScore:{matchScore}", inline = True)
@@ -492,10 +498,12 @@ class QueueSystem(commands.Cog):
             #Team A won
             winningTeam = teamAList
             losingTeam = teamBList
+            givenScore = score
         else:
             #Team B won
             winningTeam = teamBList
             losingTeam = teamAList
+            givenScore = score[::-1]
 
         winCaptID = winningTeam[0]
         lossCaptID = losingTeam[0]
@@ -513,7 +521,7 @@ class QueueSystem(commands.Cog):
 
 
         try:
-            embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = False )
+            embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, givenScore, isPending = False )
             sentEmbed = await ctx.send(content = f"Captains: <@{winCapt.id}> , <@{lossCapt.id}>", embed = embed)
 
         except Exception as e:
@@ -703,10 +711,13 @@ class QueueSystem(commands.Cog):
                 #Author's team won
                 winningTeam, losingTeam = authorTeamList, oppTeamList
                 winCapt, lossCapt = authorTeamCaptain, oppTeamCaptain
+                givenScore = score
+
             elif teamResult[1] < teamResult[2]:
                 #Author's team lost
                 winningTeam, losingTeam = oppTeamList, authorTeamList
                 winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
+                givenScore = score[::-1]
 
 
             if "nonOT" in teamResult:
@@ -724,7 +735,7 @@ class QueueSystem(commands.Cog):
 
 
             try:
-                embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = True )
+                embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, givenScore, isPending = True )
                 sentEmbed = await ctx.send(content = f"Captains: <@{authorTeamCaptain.id}> , <@{oppTeamCaptain.id}>", embed = embed)
                 await sentEmbed.add_reaction(check_mark)
                 await sentEmbed.add_reaction(cross_mark)
@@ -735,7 +746,7 @@ class QueueSystem(commands.Cog):
             async def confirmMatch():
 
                 #Update Embed Message
-                await sentEmbed.edit(embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = False))
+                await sentEmbed.edit(embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, givenScore, isPending = False))
 
                 global GVC
 
@@ -1178,7 +1189,7 @@ def checkCorrectScore(score):
             return "incorrect"
 
 
-def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, isPending):
+def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, givenScore, isPending):
     #Recieves the winning team, losing team, their captains and whether it is OT
 
     winTeamStr = ""
@@ -1194,12 +1205,12 @@ def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, isPending)
     embedFooterText = ""
     if isPending :
         embedTitle = f"Match Result Update Pending: {MID}"
-        embedFooterText = f"Captains, react with {check_mark} to confirm"
+        embedFooterText = f"Captains, react with {check_mark} to confirm, {cross_mark} to cancel"
     else:
         embedTitle = f"Match Result Confirmed: {MID}"
         embedFooterText = f"Results confirmed: {check_mark}"
 
-    myEmbed = discord.Embed(title = embedTitle)
+    myEmbed = discord.Embed(title = embedTitle, description = f"**Given Score:** {givenScore}")
     myEmbed.add_field(name = f"Team: {winCapt}", value = winTeamStr)
     myEmbed.add_field(name = f"Team: {lossCapt}", value = lossTeamStr)
     myEmbed.set_footer(text = embedFooterText)
