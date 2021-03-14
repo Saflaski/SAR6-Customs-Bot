@@ -30,7 +30,9 @@ logger.addHandler(handler)
 #End of log
 
 #MongoDB setup
-myclient = pymongo.MongoClient("mongodb+srv://SFSI1:JJJQb7a9hHNbiYw@cluster0.9oihh.mongodb.net/TM_DB?retryWrites=true&w=majority")
+with open("MONGODB_PASS") as mongoFile:
+	mongoCredURL = mongoFile.read().rstrip("\n")
+myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
 

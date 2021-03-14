@@ -2,6 +2,7 @@
 TOKEN
 ONGOING_MATCHES.txt
 ONGOING_MATCHES
+MONGODB_PASS
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
