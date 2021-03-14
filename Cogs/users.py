@@ -5,9 +5,12 @@ import re
 from discord.ext import commands
 
 #settingup MongoDB
-myclient = pymongo.MongoClient("mongodb+srv://SFSI1:JJJQb7a9hHNbiYw@cluster0.9oihh.mongodb.net/TM_DB?retryWrites=true&w=majority")
+with open("MONGODB_PASS") as mongoFile:
+	mongoCredURL = mongoFile.read().rstrip("\n")
+myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
+matchesCol = db["matches_col"]
 
 #Global Variables
 baseELO = 2000
@@ -17,6 +20,8 @@ footerText = "R6TM Bot v0.1 | Use .h for help!"
 footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/813716545627881482/idk.png"
 thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 
+#Global variables
+playersPerLobby = 4
 
 class Users(commands.Cog):
 
@@ -65,12 +70,8 @@ class Users(commands.Cog):
 		if isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send('Usage: ".register <Uplay Username>" Eg. ".register F.lanker"')
 		if isinstance(error, commands.NoPrivateMessage):
-			pass		#To prevent clogging up terminal
+			pass		
 
-
-
-	#@commands.command(name = "test")
-	#async def testCommand(self, ctx, tier = 3):
 
 	
 	@commands.command(name = "info")
@@ -86,49 +87,78 @@ class Users(commands.Cog):
 			
 			givenID = int(str(givenID)[3:-1])			#convert from <!@######> to ###### ;# is digit
 			print(f"@Discord mode: {givenID}")
-			mydoc = dbCol.find({"discID" : givenID})
+			mydoc = dbCol.find_one({"discID" : givenID})
 
 		elif len(givenID) == 0:							#Self mode
 			
 			print(f"Self mode: {ctx.author.id}")
 			givenID = ctx.author.id
-			mydoc = dbCol.find({"discID" : givenID})
+			mydoc = dbCol.find_one({"discID" : givenID})
 
 		elif len(givenID) >=0 :							#Uplay mode
 			
 			print(f"Uplay mode: {ctx.author.id}")
-			mydoc = dbCol.find({"uplayIGN" : givenID})
+			mydoc = dbCol.find_one({"uplayIGN" : givenID})
 
 		userDiscName = ""		#Later used to check if data extracted successfully
 
 		#Extract Data from collection
-		for x in mydoc:									
-			try:
-
-				userDiscName = x["discName"]
-				userUplayID = x["uplayIGN"]
-				userELO = x["ELO"]
-
-				userJoinDate = x["dateRegistered"]
-				userJoinDate = userJoinDate.date()
-
-			except:
-					print("Error: At Try/Except at .info ")
-
-		#Creates embed object if data has been succesfully extracted, otherwise says "User not found"
-		if len(userDiscName) != 0:
-
-			myEmbed = discord.Embed(title = f"{userDiscName}", color = embedSideColor)
-			myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = True)		
-			myEmbed.add_field(name = "ELO: ", value = userELO, inline = True)
-			myEmbed.add_field(name = "Join Date:", value = userJoinDate, inline = False)
-			myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
-			await ctx.send(embed = myEmbed)
-
-		else:
-			await ctx.send("User not found.")
-
 		
+		if mydoc is None:
+			await ctx.send(embed = discord.Embed(description = "User not found"))
+			return None
+
+		#if not None
+
+		#Get user info
+		userDiscID = mydoc["discID"]
+		userDiscName = mydoc["discName"]
+		userUplayID = mydoc["uplayIGN"]
+		userELO = mydoc["ELO"]
+
+		userJoinDate = mydoc["dateRegistered"]
+		userJoinDate = userJoinDate.date()
+
+		#Get match history info
+		matchHistoryDoc = matchesCol.find({"matchList" : userDiscID}).sort([("_id", -1)]).limit(10)
+		
+		WLString = ""
+		for match in matchHistoryDoc:
+			matchScore = match["score"]
+
+			if matchScore != "C-C" and matchScore != "0-0":
+				if userDiscID in match["matchList"][playersPerLobby//2:]:
+					matchScore = matchScore[::-1]		#Reverse the score
+
+				authScore, oppScore = matchScore.split("-")
+				authScore, oppScore = int(authScore), int(oppScore)
+				
+				if authScore > oppScore:
+					WLString += "W-"
+				else:
+					WLString += "L-"
+
+			elif matchScore == "C-C":
+				WLString += "C-"
+
+			elif matchScore == "0-0":
+				WLString += "GNO-"		#When reversed, this will spell "ONG" ie, Ongoing
+
+			else:
+				print("\nERROR: Invalid match score in database at getUserInfo in users.py\n")
+				return None
+
+		WLString = WLString.rstrip("-")[::-1]
+
+
+		myEmbed = discord.Embed(title = f"{userDiscName}", color = embedSideColor)
+		myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = True)		
+		myEmbed.add_field(name = "ELO: ", value = userELO, inline = True)
+		myEmbed.add_field(name = "Join Date:", value = userJoinDate, inline = False)
+		myEmbed.add_field(name = "Win-Loss (last 10):", value = WLString, inline = False)
+		myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+		await ctx.send(embed = myEmbed)
+
 	
 	@getUserInfo.error
 	async def info_retrieve_error(self, ctx, error):
@@ -137,7 +167,7 @@ class Users(commands.Cog):
 		elif isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send("Usage: .info <@DiscordID> | Eg.: .info @Carl\nOptional uplayID search mode: .info <uplayID> uplay| Eg.: .info Pengu.G2 uplay")
 		else:
-			print("Error: info_retrieve_error")
+			print(error)
 
 	#Forceregister is basically the same as .register except only for high-permission users/admins
 	@commands.command(name = "forceregister")
