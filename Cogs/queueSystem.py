@@ -53,7 +53,7 @@ GVC = {}
 #Global Variables
 
 #Discord Values
-matchGenerationChannel = 813695785928884267     #Channel for Embeds to go to
+matchGenerationChannel = 813695785928884267    #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
 myGuildID = 813695785928884264                  #Used later to get myGuild
 myGuild = None                                  #Guild for which Bot is run
@@ -80,7 +80,7 @@ EXPO_VAL = 800
 
 """
 Queue system v0.1
-Status : INCOMPLETE
+Status : COMPLETE
 As of right now, v0.1 works like:
     .joinq adds the user to the queue
     .leaveq removes the user from the queue
