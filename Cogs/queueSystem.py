@@ -294,7 +294,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = failEmbed)
             return None
 
-        elif opResult.modified_count != 0:
+        else:
             successEmbed = discord.Embed(description = f"Succesfully set ELO: {ELO}", color = 0x00ff00)
             await ctx.send(embed = successEmbed)
 
@@ -401,7 +401,7 @@ class QueueSystem(commands.Cog):
         else:
             myEmbed = discord.Embed(description = "Invalid Match ID", color = 0xff0000)
             await ctx.send(embed = myEmbed)
-            print("\n\nFATAL ERROR: Failure 1 at addManualResult\n\n")
+            print("\n\nFATAL ERROR: Failure 1 at forceAddResult\n\n")
             return None
 
         #Find which team won
@@ -634,6 +634,7 @@ class QueueSystem(commands.Cog):
                 oppTeamList = teamAList
                 DB_score = score[::-1]      #Reverse the score
 
+
             #Fetch the member objects for each captain
             authorTeamCaptain = await self.client.fetch_user(authorTeamList[0])
             oppTeamCaptain = await self.client.fetch_user(oppTeamList[0])
@@ -659,15 +660,20 @@ class QueueSystem(commands.Cog):
                 winningTeam, losingTeam = oppTeamList, authorTeamList
                 winCapt, lossCapt = oppTeamCaptain, authorTeamCaptain
 
+
             if "nonOT" in teamResult:
                 isOT = False
             elif "OT" in teamResult:
                 isOT = True
 
-            #Prepare a dict of playerIDs and their pre match ELOs
-            matchDict = ongMatchFileOps("R", MID)
 
+            #Prepare a dict of playerIDs and their pre match ELOs
+            
+            matchDict = ongMatchFileOps("R", MID)
+            
             winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True)
+            
+
 
             try:
                 embed = getResultEmbed(MID, winTeamChange, lossTeamChange, winCapt, lossCapt, isPending = True )
@@ -989,13 +995,16 @@ def getChangeDict(matchDict, winningTeam, losingTeam, setELO):
     winTeamChange = {}
     lossTeamChange = {}
 
+
     for playerID in winningTeam:
         winTeamDict[playerID] = matchDict[playerID]
     for playerID in losingTeam:
         lossTeamDict[playerID] = matchDict[playerID]
 
+
     #Use ELO Rating System to get new ELOs
     newWinTeamDict, newLossTeamDict = getIndivELO(winTeamDict, lossTeamDict)
+
 
     for playerID in newWinTeamDict:
         winTeamChange[playerID] = convFactor*(newWinTeamDict[playerID] - winTeamDict[playerID])
