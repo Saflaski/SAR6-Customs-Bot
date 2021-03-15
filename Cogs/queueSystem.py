@@ -53,7 +53,7 @@ GVC = {}
 #Global Variables
 
 #Discord Values
-matchGenerationChannel = 813695785928884267    #Channel for Embeds to go to
+matchGenerationChannel = 821074270783406121     #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
 myGuildID = 813695785928884264                  #Used later to get myGuild
 myGuild = None                                  #Guild for which Bot is run
@@ -114,12 +114,12 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["joinq","join"])
-    async def joinQueue(self, ctx, member : discord.Member):
+    async def joinQueue(self, ctx):
 
         global GQL
 
         #Adds user to the queue
-        #member = ctx.author
+        member = ctx.author
         discID = member.id
 
 
@@ -195,9 +195,9 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["leaveq","leave"])
-    async def leaveQueue(self, ctx, member : discord.Member):
+    async def leaveQueue(self, ctx):
 
-        #member = ctx.author
+        member = ctx.author
 
         global GQL
 
