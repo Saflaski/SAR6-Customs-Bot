@@ -1086,7 +1086,7 @@ def getIndivELO(winTeam, lossTeam):
         newRatingW = newRating(1, curRatingW, medianL)
 
         if newRatingW < MIN_ELO_CHANGE:
-            winTeamNewRating[playerID] = MIN_ELO_CHANGE
+            winTeamNewRating[playerID] = winTeam[playerID] + MIN_ELO_CHANGE
         else:
             winTeamNewRating[playerID] = newRatingW
 
@@ -1095,7 +1095,7 @@ def getIndivELO(winTeam, lossTeam):
         newRatingL = newRating(0, curRatingL, medianW)
         
         if newRatingL > - MIN_ELO_CHANGE:
-            lossTeamNewRating[playerID] = - MIN_ELO_CHANGE
+            lossTeamNewRating[playerID] = lossTeam[playerID] - MIN_ELO_CHANGE
         else:
             lossTeamNewRating[playerID] = newRatingL
 
