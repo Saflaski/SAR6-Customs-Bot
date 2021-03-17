@@ -787,15 +787,19 @@ class QueueSystem(commands.Cog):
                 print(f"Removed players and VCs from ongoing list \nMatch Closed: {MID}")
 
             #To check that captain has used correct reaction
+            checkCaptainID = lambda userID: userID == winCapt.id or myuser == lossCapt.id
+
             def check(myreaction, myuser):
 
-                userCond = (myuser == authorTeamCaptain) or (myuser == oppTeamCaptain)
+                userCond = myuser.id in winTeamChange or myuser.id in lossTeamChange
                 reactionCond = str(myreaction.emoji) == check_mark or str(myreaction.emoji) == cross_mark
                 return (userCond and reactionCond)
 
             #Captain confirmation boolean values for each team
-            oppTeamConf = False
-            authTeamConf = False
+            validReactLostTeam = []
+            validReactWinTeam = []
+            winTeamConf = False
+            lossTeamConf = False
 
             timeout = 120
             timeout_start = time.time()     #Starts keeping track of time
@@ -808,20 +812,29 @@ class QueueSystem(commands.Cog):
                 #print(f"{myuser} did {myreaction}")
 
                 if check(myreaction, myuser):
-                    if str(myreaction.emoji) == cross_mark:
-                        embed.set_footer(text = f"Result denied by {myuser}")
+                    if str(myreaction.emoji) == cross_mark and checkCaptainID(myuser.id):
+                        embed.set_footer(text = f"Result denied by Captain: {myuser}")
                         await sentEmbed.edit(embed = embed)
                         await sentEmbed.clear_reactions()
                         return None
 
-                    elif myuser == authorTeamCaptain:
-                        authTeamConf = True
-                    elif myuser == oppTeamCaptain:
-                        oppTeamConf = True
+                    elif myuser.id == winCapt.id:
+                        winTeamConf = True
+                    elif myuser.id == lossCapt.id:
+                        lossTeamConf = True
+                    elif myuser.id not in validReactLostTeam:
+                        validReactLostTeam.append(myuser.id)
+                    elif myuser.id not in validReactWinTeam:
+                        validReactWinTeam.append(myuser.id)
+
+                    if len(validReactLostTeam) >= 2:
+                        lossTeamConf = True
+                    if len(validReactWinTeam) >= 2:
+                        winTeamConf = True
 
 
                 #Check if captains have verified
-                if authTeamConf and oppTeamConf:
+                if winTeamConf and lossTeamConf:
                     print("Match Result Confirmed")
 
                     #Get Embed, Update Databse, Remove from PIOM
