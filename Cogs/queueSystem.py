@@ -74,8 +74,9 @@ digitArr = ["1\u20E3", "2\u20E3", "3\u20E3"]
 MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "Chalet"]
 
 #ELO System Values
-K_VAL = 75
-EXPO_VAL = 800
+K_VAL = 75                  #K value for awarding Elo change based on Expected Win Probability
+EXPO_VAL = 800              #400 value for calculating Expected Win Probability
+MIN_ELO_CHANGE = 10         #minmium ELO change possible
 
 
 """
@@ -1084,13 +1085,19 @@ def getIndivELO(winTeam, lossTeam):
         curRatingW = winTeam[playerID]
         newRatingW = newRating(1, curRatingW, medianL)
 
-        winTeamNewRating[playerID] = newRatingW
+        if newRatingW < MIN_ELO_CHANGE:
+            winTeamNewRating[playerID] = MIN_ELO_CHANGE
+        else:
+            winTeamNewRating[playerID] = newRatingW
 
     for playerID in lossTeam:
         curRatingL = lossTeam[playerID]
         newRatingL = newRating(0, curRatingL, medianW)
-
-        lossTeamNewRating[playerID] = newRatingL
+        
+        if newRatingL > - MIN_ELO_CHANGE:
+            lossTeamNewRating[playerID] = - MIN_ELO_CHANGE
+        else:
+            lossTeamNewRating[playerID] = newRatingL
 
     """
     print(f"Winning Team Changes: {winTeamNewRating}")
