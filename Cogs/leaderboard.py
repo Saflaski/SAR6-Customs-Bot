@@ -7,7 +7,9 @@ import math
 from discord.ext import commands
 
 #settingup MongoDB
-myclient = pymongo.MongoClient("mongodb+srv://SFSI1:JJJQb7a9hHNbiYw@cluster0.9oihh.mongodb.net/TM_DB?retryWrites=true&w=majority")
+with open("MONGODB_PASS") as mongoFile:
+	mongoCredURL = mongoFile.read().rstrip("\n")
+myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
 
@@ -24,6 +26,9 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 left_arrow = '\u23EA'
 right_arrow = '\u23E9'
 
+#Discord Values
+leaderBoardTC = 821074253586890753
+
 
 class Leaderboard(commands.Cog):
 	def __init__(self, client):
@@ -33,19 +38,27 @@ class Leaderboard(commands.Cog):
 	async def on_ready(self):
 		print('Cog: "leaderboard" is ready.')
 
-	
-	
+	#Channel Checks
+	def checkCorrectChannel(channelID = None, channelIDList = []):
+		def function_wrapper(ctx):
+			givenChannelID = ctx.message.channel.id
+			if givenChannelID in channelIDList or givenChannelID == channelID:
+				return True
+			else:
+				return False
+		return commands.check(function_wrapper)
 
-	@commands.command(name = "lb")
+	@commands.command(aliases = ["leaderboard", "leaderboards"])
 	@commands.guild_only()
-	async def lb(self, ctx):
+	@checkCorrectChannel(channelID = leaderBoardTC)
+	async def lb(self, ctx, myPos = None):
 
 		print(f"{ctx.author} used lb")
 
-		aliveTime = 40					#How long to enable page switching (seconds)
+		aliveTime = 60					#How long to enable page switching (seconds)
 
 		currentSkip = 0					#No. of documents currently skipped
-		limitPerPage = 5				#No. of documents to show per page
+		limitPerPage = 10				#No. of documents to show per page
 
 		#mydoc = dbCol.find().skip(currentSkip).limit(limitPerPage).sort("ELO",1)
 
@@ -60,8 +73,8 @@ class Leaderboard(commands.Cog):
 			->Returns Embed Object
 
 		"""
-		def getEmbedObject():			
-			#global Currentskip 		
+		def getEmbedObject():
+			#global Currentskip
 			global currentPage
 			global totalPages
 
@@ -79,8 +92,8 @@ class Leaderboard(commands.Cog):
 				uRank = str(currentSkip + tempCounter) + '.'
 
 				#To query each doc and append details to the body of Embed Object
-				embedContentString += f"{uRank.ljust(4)} **{x['discName']}**\nUplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n"
-				
+				embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+
 
 			#Generate Embed Object
 			myEmbed = discord.Embed(title = "Leaderboards", color = embedSideColor)
@@ -89,10 +102,10 @@ class Leaderboard(commands.Cog):
 			myEmbed.set_thumbnail(url = thumbnailURL)
 
 			return myEmbed
-		
 
-		lb_msg = await ctx.send(embed = getEmbedObject())	# Gives embed of n documents 
-															# n = maxLimit 
+
+		lb_msg = await ctx.send(embed = getEmbedObject())	# Gives embed of n documents
+															# n = maxLimit
 
 
 		#Bot reacts to the lb_msg so that user can easily react to the message
@@ -110,19 +123,18 @@ class Leaderboard(commands.Cog):
 			return user == ctx.author and (str(reaction.emoji) == right_arrow or str(reaction.emoji) == left_arrow)
 
 		while time.time() < timeout_start + timeout:		#While time limit has not elapsed
-			
+
 			try:
 				#Watches out for author to add the proper reaction
-				reaction, user = await self.client.wait_for('reaction_add', timeout = 5.0, check = check)
+				reaction, user = await self.client.wait_for('reaction_add', timeout = 60.0, check = check)
 
 			except asyncio.TimeoutError:
 				pass					#I forgot why I added timeout above and asyncio.TimeoutError here
 				#print("Timed_Out")		#Useless
-	
 
 			if str(reaction.emoji) == right_arrow:
 				print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")
-				
+
 				if currentSkip + limitPerPage >= maxLimit:			#Checks if it will go over limit i.e, the beginning
 					pass											#Doesn't update page if it goes over limit
 				else:
@@ -142,7 +154,7 @@ class Leaderboard(commands.Cog):
 				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")	#debugging
 				await lb_msg.edit(embed = getEmbedObject())
 				await lb_msg.remove_reaction(left_arrow, ctx.author)
-			
+
 			time.sleep(1)		#To avoid resource hogging (by looping continously)
 
 		await lb_msg.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed

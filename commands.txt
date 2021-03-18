@@ -8,4 +8,19 @@
 `.register <Uplay ID>` -> Register yourself
 `.updateuplay <New Uplay ID>` -> Update your uplay account ID
 
+**Queueing:**
+`.joinq` -> Join global queue
+`.leavequeue` -> Leave global queue
+`.showq` -> Show queue
+
+**Post-match**
+`.result <score>` -> Upload score for a match you're in
+\`--> Score should be in the format <your team's score>-<their team's score>
+\`--> Eg. If you win 7-5, then it's `.result 7-5`
+
+**Admin commands**
+`.ongoing` -> Show ongoing matches
+`.forceresult <match ID> <score>` -> Closes a match, changes Elo, deletes VC
+`.cancelmatch <match ID>` -> Cancels a match, deletes VC
+
 *Fields in <> are to be entered by the user*

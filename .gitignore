@@ -1,5 +1,8 @@
 ### My Files ###
 TOKEN
+ONGOING_MATCHES.txt
+ONGOING_MATCHES
+MONGODB_PASS
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -130,3 +133,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+ONGOING_MATCHES.txt
