@@ -4,6 +4,7 @@ import discord
 import os
 import pymongo
 import logging
+from os import environ
 
 from discord.ext import commands
 
@@ -19,7 +20,7 @@ footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/813716
 thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 embedSideColor = 0x2425A2
 
-#logging errors 
+#logging errors
 							#Not being used because unable to install logging on Windows #nvm
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -30,13 +31,13 @@ logger.addHandler(handler)
 #End of log
 
 #MongoDB setup
-with open("MONGODB_PASS") as mongoFile:
-	mongoCredURL = mongoFile.read().rstrip("\n")
+mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
 
-
+#TOKEN SETUP
+TOKEN = environ["DISCORD_TOKEN"]
 
 
 #Say Hi
@@ -49,7 +50,7 @@ async def on_ready():
 async def help(ctx):
 	with open("commands.txt") as f:
 		commandsTextFile = f.read()
-	
+
 	myEmbed = discord.Embed(title = "Help", color = embedSideColor)
 	myEmbed.add_field(name = f"Commands:", value = commandsTextFile)
 	myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
@@ -77,9 +78,6 @@ for filename in os.listdir('./Cogs'):
 #End of Cog setup
 
 
-#Setup TOKEN
-with open("TOKEN") as f:
-	TOKEN = f.read()
-	TOKEN = TOKEN[:-1]
+
 
 client.run(TOKEN)

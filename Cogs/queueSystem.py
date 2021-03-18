@@ -12,13 +12,13 @@ import ast
 import random
 import math
 import statistics
+from os import environ
 from discord.ext import commands, tasks
 from itertools import combinations
 
 
 #settingup MongoDB
-with open("MONGODB_PASS") as mongoFile:
-    mongoCredURL = mongoFile.read().rstrip("\n")
+mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]

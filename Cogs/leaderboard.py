@@ -5,10 +5,10 @@ import asyncio
 import time
 import math
 from discord.ext import commands
+from os import environ
 
 #settingup MongoDB
-with open("MONGODB_PASS") as mongoFile:
-	mongoCredURL = mongoFile.read().rstrip("\n")
+mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["TM_DB"]
 dbCol = db["users_col"]
