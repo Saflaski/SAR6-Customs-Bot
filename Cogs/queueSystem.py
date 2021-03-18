@@ -819,8 +819,6 @@ class QueueSystem(commands.Cog):
                 return (userCond and reactionCond)
 
             #Captain confirmation boolean values for each team
-            validReactLostTeam = []
-            validReactWinTeam = []
             winTeamConf = False
             lossTeamConf = False
 
@@ -848,20 +846,6 @@ class QueueSystem(commands.Cog):
                     elif myuser.id == lossCapt.id:
                         lossTeamConf = True
                         embed.set_footer(text = f"Result accepted by {lossCapt}'s side")
-                        await sentEmbed.edit(embed = embed)
-                    elif myuser.id not in validReactLostTeam:
-                        validReactLostTeam.append(myuser.id)
-                    elif myuser.id not in validReactWinTeam:
-                        validReactWinTeam.append(myuser.id)
-
-                    if len(validReactLostTeam) >= 2:
-                        lossTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side")
-                        await sentEmbed.edit(embed = embed)
-
-                    if len(validReactWinTeam) >= 2:
-                        winTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {winCapt}'s side")
                         await sentEmbed.edit(embed = embed)
 
 
@@ -1131,7 +1115,7 @@ def getIndivELO(winTeam, lossTeam):
         curRatingW = winTeam[playerID]
         newRatingW = newRating(1, curRatingW, medianL)
 
-        if newRatingW < MIN_ELO_CHANGE:
+        if newRatingW < MIN_ELO_CHANGE + curRatingW:
             winTeamNewRating[playerID] = winTeam[playerID] + MIN_ELO_CHANGE
         else:
             winTeamNewRating[playerID] = newRatingW
@@ -1139,8 +1123,8 @@ def getIndivELO(winTeam, lossTeam):
     for playerID in lossTeam:
         curRatingL = lossTeam[playerID]
         newRatingL = newRating(0, curRatingL, medianW)
-        
-        if newRatingL > - MIN_ELO_CHANGE:
+
+        if newRatingL > curRatingL - MIN_ELO_CHANGE:
             lossTeamNewRating[playerID] = lossTeam[playerID] - MIN_ELO_CHANGE
         else:
             lossTeamNewRating[playerID] = newRatingL

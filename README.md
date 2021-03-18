@@ -3,6 +3,7 @@
 SAR6 Customs Bot or SAR6C is a Python based Discord bot to conduct Customs or "Pug" style competitions for the SA-R6 Community Discord Server. The bot registers users, performs matchmaking operations and keeps track of player scores. The bot is currently on version 0.1 as all the base features have not been added yet.
 </td></tr><table>
 
+## README UNDER CONSTRUCTION
 ### Prerequisites
 MongoDB setup:\
 *Currently the server is setup to accept connections from anywhere*
