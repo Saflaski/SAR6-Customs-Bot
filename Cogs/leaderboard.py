@@ -26,6 +26,9 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 left_arrow = '\u23EA'
 right_arrow = '\u23E9'
 
+#Discord Values
+leaderBoardTC = 821074253586890753
+
 
 class Leaderboard(commands.Cog):
 	def __init__(self, client):
@@ -35,11 +38,19 @@ class Leaderboard(commands.Cog):
 	async def on_ready(self):
 		print('Cog: "leaderboard" is ready.')
 
-
-
+	#Channel Checks
+	def checkCorrectChannel(channelID = None, channelIDList = []):
+		def function_wrapper(ctx):
+			givenChannelID = ctx.message.channel.id
+			if givenChannelID in channelIDList or givenChannelID == channelID:
+				return True
+			else:
+				return False
+		return commands.check(function_wrapper)
 
 	@commands.command(aliases = ["leaderboard", "leaderboards"])
 	@commands.guild_only()
+	@checkCorrectChannel(channelID = leaderBoardTC)
 	async def lb(self, ctx, myPos = None):
 
 		print(f"{ctx.author} used lb")

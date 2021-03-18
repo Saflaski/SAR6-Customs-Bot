@@ -52,7 +52,7 @@ GVC = {}
 
 #Global Variables
 
-#Discord Values
+##Discord Values##
 matchGenerationChannel = 821074270783406121     #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
 myGuildID = 813695785928884264                  #Used later to get myGuild
@@ -60,6 +60,12 @@ myGuild = None                                  #Guild for which Bot is run
 voiceChannelCategoryID = 816634104362827786     #Used later to get voiceChannelCategory
 voiceChannelCategory = None                     #Category into which to make VCs
 
+#Text Channel IDs
+helpRegInfoLbTC = 821074253586890753
+queueTC = 821074288693739551
+matchGenTC = 821074270783406121
+postMatchTC = 821074415818899546
+completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC]
 
 #Roles
 adminRole = "R6C Admin"
@@ -113,8 +119,20 @@ class QueueSystem(commands.Cog):
         myGuild = self.client.get_guild(813695785928884264)
         voiceChannelCategory = discord.utils.get(myGuild.categories, id = voiceChannelCategoryID)
 
+    #Check if Correct Channel
+    def checkCorrectChannel(channelID = None, channelIDList = []):
+        def function_wrapper(ctx):
+            givenChannelID = ctx.message.channel.id
+            if givenChannelID in channelIDList or givenChannelID == channelID:
+                return True
+            else:
+                return False
+        return commands.check(function_wrapper)
+
+
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["joinq","join"])
+    @checkCorrectChannel(channelID = queueTC)
     async def joinQueue(self, ctx):
 
         global GQL
@@ -156,6 +174,7 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["showq", "queue"])
+    @checkCorrectChannel(channelIDList = completeChannelList)
     async def showQueue(self, ctx):
         global GQL
         tempGQL = GQL.copy()    #copies current state of GQL
@@ -196,6 +215,7 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["leaveq","leave"])
+    @checkCorrectChannel(channelID = queueTC)
     async def leaveQueue(self, ctx):
 
         member = ctx.author
@@ -222,6 +242,7 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["showM", "getMatch", "getM", "match"])
+    @checkCorrectChannel(channelIDList = completeChannelList)
     async def showMatch(self, ctx, matchID):
 
 
@@ -296,6 +317,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.command(aliases = ["showongoing", "ongoingmatches", "ongoing"])
+    @checkCorrectChannel(channelIDList = completeChannelList)
     async def showOngoingMatches(self, ctx):
 
         #Get all matches with 0-0 score with most recent as first
@@ -601,6 +623,7 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(userRole, adminRole)
     @commands.command(name = "result")
+    @checkCorrectChannel(channelID = postMatchTC)
     async def addManualResult(self, ctx, score):
         global PIOM
         global GVC
@@ -820,8 +843,12 @@ class QueueSystem(commands.Cog):
 
                     elif myuser.id == winCapt.id:
                         winTeamConf = True
+                        embed.set_footer(text = f"Result accepted by {winCapt}'s side")
+                        await sentEmbed.edit(embed = embed)
                     elif myuser.id == lossCapt.id:
                         lossTeamConf = True
+                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side")
+                        await sentEmbed.edit(embed = embed)
                     elif myuser.id not in validReactLostTeam:
                         validReactLostTeam.append(myuser.id)
                     elif myuser.id not in validReactWinTeam:
@@ -829,8 +856,13 @@ class QueueSystem(commands.Cog):
 
                     if len(validReactLostTeam) >= 2:
                         lossTeamConf = True
+                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side")
+                        await sentEmbed.edit(embed = embed)
+
                     if len(validReactWinTeam) >= 2:
                         winTeamConf = True
+                        embed.set_footer(text = f"Result accepted by {winCapt}'s side")
+                        await sentEmbed.edit(embed = embed)
 
 
                 #Check if captains have verified
@@ -1011,10 +1043,11 @@ class QueueSystem(commands.Cog):
         embedMessage.set_footer(text = "GLHF for your match!", icon_url = footerIcoURL)
         await msg.edit(embed = embedMessage)
 
+
     #### TESTING PURPOSES ####
     @commands.has_any_role(adminRole)
     @commands.command(name = "QSTest")
-    async def queueTest(self, ctx, mode, MID, Dict = None):
+    async def queueTest(self, ctx):
 
         print(f"GVC: {GVC}")
         print(f"GQL: {GQL}")
@@ -1218,7 +1251,7 @@ def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, givenScore
     embedFooterText = ""
     if isPending :
         embedTitle = f"Match Result Update Pending: {MID}"
-        embedFooterText = f"Captains, react with {check_mark} to confirm, {cross_mark} to cancel"
+        embedFooterText = f"Captains or 2x players, react with {check_mark} to confirm, {cross_mark} to cancel"
     else:
         embedTitle = f"Match Result Confirmed: {MID}"
         embedFooterText = f"Results confirmed: {check_mark}"

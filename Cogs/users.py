@@ -23,6 +23,10 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 #Global variables
 playersPerLobby = 4
 
+#Discord Values
+infoRegTC = 821074253586890753
+
+
 class Users(commands.Cog):
 
 	def __init__(self, client):
@@ -32,9 +36,20 @@ class Users(commands.Cog):
 	async def on_ready(self):
 		print('Cog: "users" is ready.')
 
+	#Channel Checks
+	def checkCorrectChannel(channelID = None, channelIDList = []):
+		def function_wrapper(ctx):
+			givenChannelID = ctx.message.channel.id
+			if givenChannelID in channelIDList or givenChannelID == channelID:
+				return True
+			else:
+				return False
+		return commands.check(function_wrapper)
+
 	#Register user
 	@commands.command(name = "register")
 	@commands.guild_only()
+	@checkCorrectChannel(channelID = infoRegTC)
 	async def registerUser(self, ctx, uplayIGN):
 		
 		print(f"{ctx.author} used register")
@@ -76,6 +91,7 @@ class Users(commands.Cog):
 	
 	@commands.command(name = "info")
 	@commands.guild_only()
+	@checkCorrectChannel(channelID = infoRegTC)
 	async def getUserInfo(self, ctx, givenID = ""):
 		
 		print(f"{ctx.author} used info")
@@ -208,6 +224,7 @@ class Users(commands.Cog):
 
 	#Updates Uplay ID
 	@commands.command(aliases = ["updateUplay", "uUplay", "updateuplay", "uuplay"])
+	@checkCorrectChannel(channelID = infoRegTC)
 	async def update_Uplay(self, ctx, newUplayID):
 
 		authorID = ctx.author.id
