@@ -133,12 +133,12 @@ class QueueSystem(commands.Cog):
     @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["joinq","join"])
     @checkCorrectChannel(channelID = queueTC)
-    async def joinQueue(self, ctx, member: discord.Member):
+    async def joinQueue(self, ctx):
 
         global GQL
 
         #Adds user to the queue
-        #member = ctx.author
+        member = ctx.author
         discID = member.id
 
 
