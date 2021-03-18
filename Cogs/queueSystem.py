@@ -1031,11 +1031,16 @@ class QueueSystem(commands.Cog):
     #### TESTING PURPOSES ####
     @commands.has_any_role(adminRole)
     @commands.command(name = "QSTest")
-    async def queueTest(self, ctx):
+    async def queueTest(self, ctx, MID = None):
 
         print(f"GVC: {GVC}")
         print(f"GQL: {GQL}")
         print(f"PIOM: {PIOM}")
+        print("\n")
+        if MID is not None:
+            fileOpsResult = ongMatchFileOps("R", MID,)
+            print(f"File Ops Result: {fileOpsResult}")
+
 
 
     #### TESTING PURPOSES ####
