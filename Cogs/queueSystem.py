@@ -28,7 +28,7 @@ matchesCol = db["matches_col"]
 embedSideColor = 0x2425A2
 embedTitleColor = 0xF64C72
 footerText = "R6TM Bot v0.1 | Use .h for help!"
-footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/813716545627881482/idk.png"
+footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
 thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 
 #Global Queue list
@@ -83,17 +83,24 @@ MIN_ELO_CHANGE = 10         #minmium ELO change possible
 
 
 """
-Queue system v0.1
+Queue system v1.0
 Status : COMPLETE
-As of right now, v0.1 works like:
+As of right now, v1.0 works like:
     .joinq adds the user to the queue
     .leaveq removes the user from the queue
     .showq displays the queue
 
-    Once playersPerLobby people have joined the queue, the program takes them from the queue
-    and adds them to a match list.
+
+    Once playersPerLobby no. of players have joined the queue (GQL), findPossibleLobby removes them from GQL,
+    adds them to PIOM and generatedLobby with key as unique match ID.
+
+    The other loop, findGeneratedLobby, checks generatedLobby. If it finds a generated lobby, it removes them from that
+    dict, generates balanced teams, uploads the match with a score of 0-0 to database, sends the match embed, creates VCs,
+    and starts the map ban process. The end of the map ban process signifies the end of the the match generation cycle.
 
 
+    Match results:
+    See addManualResult()
 """
 
 class QueueSystem(commands.Cog):
@@ -341,7 +348,7 @@ class QueueSystem(commands.Cog):
                 myEmbed.add_field(name = f"{counter}. {matchID}", value = f"Team <@{teamACap}> vs Team <@{teamBCap}> \nMap: {matchMap}")
                 counter += 1
 
-            myEmbed.set_footer(text = "Most Recent matches at the top")
+            myEmbed.set_footer(text = "Most Recent matches at the top", icon_url = footerIcoURL)
         else:
             myEmbed.add_field(name = "None", value = "** **")
         await ctx.send(embed = myEmbed)
@@ -832,18 +839,18 @@ class QueueSystem(commands.Cog):
 
                 if check(myreaction, myuser):
                     if str(myreaction.emoji) == cross_mark and checkCaptainID(myuser.id):
-                        embed.set_footer(text = f"Result denied by Captain: {myuser}")
+                        embed.set_footer(text = f"Result denied by Captain: {myuser}", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
                         await sentEmbed.clear_reactions()
                         return None
 
                     elif myuser.id == winCapt.id:
                         winTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {winCapt}'s side")
+                        embed.set_footer(text = f"Result accepted by {winCapt}'s side", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
                     elif myuser.id == lossCapt.id:
                         lossTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side")
+                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
 
 
@@ -1257,7 +1264,7 @@ def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, givenScore
     myEmbed = discord.Embed(title = embedTitle, description = f"**Given Score:** {givenScore}")
     myEmbed.add_field(name = f"Team: {winCapt}", value = winTeamStr)
     myEmbed.add_field(name = f"Team: {lossCapt}", value = lossTeamStr)
-    myEmbed.set_footer(text = embedFooterText)
+    myEmbed.set_footer(text = embedFooterText, icon_url = footerIcoURL)
 
     return myEmbed
 

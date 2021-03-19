@@ -19,7 +19,7 @@ baseELO = 2000
 #For embed messages
 embedSideColor = 0x2425A2
 footerText = "R6TM Bot v0.1 | Use .h for help!"
-footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/813716545627881482/idk.png"
+footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
 thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 
 #Unicode reaction emojis
