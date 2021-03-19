@@ -111,6 +111,7 @@ class QueueSystem(commands.Cog):
         #Loops every 1 second
         self.findPossibleLobby.start()
         self.findGeneratedLobby.start()
+        self.setBotStatus.start()
 
 
         #Set guild and VC Category
@@ -874,6 +875,10 @@ class QueueSystem(commands.Cog):
         elif isinstance(error, commands.NoPrivateMessage):
             pass
 
+    @tasks.loop(seconds = 15)
+    async def setBotStatus(self):
+        playersInGQL = len(GQL)
+        await self.client.change_presence(activity = discord.Activity(name = f"{playersInGQL} players in queue", type = discord.ActivityType.watching))
 
     @tasks.loop(seconds = 1)
     async def findPossibleLobby(self):
@@ -1040,6 +1045,13 @@ class QueueSystem(commands.Cog):
         if MID is not None:
             fileOpsResult = ongMatchFileOps("R", MID,)
             print(f"File Ops Result: {fileOpsResult}")
+        print("Changing Status:")
+        try:
+            playersInGQL = len(GQL)
+            await self.client.change_presence(activity = discord.Activity(name = f"{playersInGQL} players in queue", type = discord.ActivityType.watching))
+            print("Changed Status")
+        except Exception as e:
+            print(e)
 
 
 
