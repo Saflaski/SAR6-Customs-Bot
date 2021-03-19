@@ -4,8 +4,10 @@ SAR6 Customs Bot or SAR6C is a Python based Discord bot to conduct Customs or "P
 </td></tr><table>
 
 ## README UNDER CONSTRUCTION
----
+<br>
+
 ## Current Commands
+
 1. Player Usable commands:
 
   * `.info` : Displays author's own info
@@ -37,8 +39,7 @@ SAR6 Customs Bot or SAR6C is a Python based Discord bot to conduct Customs or "P
   * `.QSTest <match ID>` : Diagnostics test that prints internal vals; GVC, GQL, PIOM into console\
     *Also prints match info from ONGOING_MATCHES.txt if match ID given*
 
-Gameplay cycle
-======
+## Gameplay cycle
 Let's say this is a given list of channels:
 
 <p align="center">
@@ -71,8 +72,8 @@ A completely new user has to go through the following steps to get started:
   3. Once the results have been confirmed, the players are free to queue again in `#queue` or basically, go back to step 1 of **Joining Queue**
 
 
-Elo Rating System
----
+## Elo Rating System
+
 The current Elo rating system is based on the [Elo Rating System](https://www.geeksforgeeks.org/elo-rating-algorithm/) developed by [Arpad Elo](https://en.wikipedia.org/wiki/Arpad_Elo)
 
 ###### The two important values in the calculation system is the *Exponent* value (usually `400`) and the *K* value. For our purposes, the Exponent value is set to `800` and the K value set to `75`
@@ -95,7 +96,13 @@ If a case arises where the new Elo is within a margin of `10` from the old Elo (
 *Note: Given exponent and K values updated as of version 1.0*
 
 ---
-## Built with
+### Planned Features
+* OCR/Image Processing to automatically process endgame screenshots
+* Microsoft TrueSkill system
+* Integration into R6S API (based on how useful it is)
+* Multi-server integration
+
+### Built with
 * DiscordPy
 * MongoDB
 * Deployed on Heroku
