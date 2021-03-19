@@ -20,7 +20,7 @@ from itertools import combinations
 #settingup MongoDB
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["TM_DB"]
+db = myclient["SAR6C_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -33,9 +33,6 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 
 #Global Queue list
 GQL = []
-
-#Test Queues
-
 
 
 #Dictionary of generated lobbies (but not matches)

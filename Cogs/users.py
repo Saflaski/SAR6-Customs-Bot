@@ -8,7 +8,7 @@ from discord.ext import commands
 #settingup MongoDB
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["TM_DB"]
+db = myclient["SAR6C_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 

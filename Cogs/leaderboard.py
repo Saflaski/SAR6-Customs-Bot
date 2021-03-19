@@ -10,7 +10,7 @@ from os import environ
 #settingup MongoDB
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["TM_DB"]
+db = myclient["SAR6C_DB"]
 dbCol = db["users_col"]
 
 #Global Variables

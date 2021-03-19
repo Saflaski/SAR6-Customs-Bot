@@ -33,7 +33,7 @@ logger.addHandler(handler)
 #MongoDB setup
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["TM_DB"]
+db = myclient["SAR6C_DB"]
 dbCol = db["users_col"]
 
 #TOKEN SETUP
