@@ -114,7 +114,7 @@ class QueueSystem(commands.Cog):
         #Set guild and VC Category
         global myGuild
         global voiceChannelCategory
-        myGuild = self.client.get_guild(813695785928884264)
+        myGuild = self.client.get_guild(myGuildID)
         voiceChannelCategory = discord.utils.get(myGuild.categories, id = voiceChannelCategoryID)
 
     #Check if Correct Channel
