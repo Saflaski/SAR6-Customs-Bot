@@ -58,8 +58,17 @@ async def help(ctx):
 
 	await ctx.send(embed = myEmbed)
 
+@client.command(aliases = ['adminh','admincommands'])
+async def adminhelp(ctx):
+	with open("admincommands.txt") as f:
+		commandsTextFile = f.read()
 
+	myEmbed = discord.Embed(title = "Admin Commands", color = embedSideColor)
+	myEmbed.add_field(name = f"Commands:", value = commandsTextFile)
+	myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+	myEmbed.set_thumbnail(url = thumbnailURL)
 
+	await ctx.send(embed = myEmbed)
 
 
 #Setup Cogs

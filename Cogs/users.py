@@ -24,7 +24,7 @@ thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 playersPerLobby = 4
 
 #Discord Values
-infoRegTC = 821074253586890753
+infoRegTC = 822347088057991208
 
 
 class Users(commands.Cog):

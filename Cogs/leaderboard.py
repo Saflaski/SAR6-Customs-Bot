@@ -27,7 +27,7 @@ left_arrow = '\u23EA'
 right_arrow = '\u23E9'
 
 #Discord Values
-leaderBoardTC = 821074253586890753
+leaderBoardTC = 822347088057991208
 
 
 class Leaderboard(commands.Cog):

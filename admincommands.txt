@@ -1,0 +1,12 @@
+**Admin commands**
+`.ongoing` -> Show ongoing matches
+`.forceresult <match ID> <score>` -> Closes a match, changes Elo, deletes VC
+`.cancelmatch <match ID>` -> Cancels a match, deletes VC
+`.freeglobal` -> Clears Global Queue
+`.removeplayer  <@discord ID>`: Removes player with given discord ID from Global Queue
+`.setELO <@discord ID> <target Elo>` :  Sets a player's Elo to target Elo
+
+`.QSTest <<match ID>>` : Diagnostics test that prints GVC, GQL, PIOM into console
+*Also prints match info from ONGOING_MATCHES.txt if match ID given*
+
+*Fields in <> are to be entered by the user  without '<' or '>'*

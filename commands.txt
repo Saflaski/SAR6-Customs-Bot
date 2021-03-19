@@ -1,26 +1,24 @@
 `.info` -> Shows your own info
-`.info <@discordID or Uplay ID>` :
-\`-> Shows info of user with given @DiscordID/Uplay ID
-\`-> Remember to tag the user if you use @DiscordID to search
-`.lb` : 
-\`--> Shows Leaderboard
-\`--> Page-flipping can only be done by the user who used .lb
+`.info <@discordID or Uplay ID>` : Shows info of user with given @DiscordID/Uplay ID
+*Remember to tag the user if you use @DiscordID to search*
+`.lb` : Shows Leaderboard
+*Page-flipping can only be done by the user who used .lb*
 `.register <Uplay ID>` -> Register yourself
 `.updateuplay <New Uplay ID>` -> Update your uplay account ID
 
 **Queueing:**
 `.joinq` -> Join global queue
-`.leavequeue` -> Leave global queue
+`.leaveq` -> Leave global queue
 `.showq` -> Show queue
 
 **Post-match**
 `.result <score>` -> Upload score for a match you're in
-\`--> Score should be in the format <your team's score>-<their team's score>
-\`--> Eg. If you win 7-5, then it's `.result 7-5`
+*Score should be in the format <your team's score>-<their team's score>*
+*Eg. If you win 7-5, then it's `.result 7-5`*
 
-**Admin commands**
-`.ongoing` -> Show ongoing matches
-`.forceresult <match ID> <score>` -> Closes a match, changes Elo, deletes VC
-`.cancelmatch <match ID>` -> Cancels a match, deletes VC
+**MISC**
+`.ongoing` -> Shows list of ongoing matches
+*List is in descending chronological order*
+`.showMatch <match ID>` -> Shows info about a certain match with given match ID
 
-*Fields in <> are to be entered by the user*
+*Fields in <> are to be entered by the user  without '<' or '>'*

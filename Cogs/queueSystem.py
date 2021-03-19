@@ -50,18 +50,18 @@ GVC = {}
 #Global Variables
 
 ##Discord Values##
-matchGenerationChannel = 821074270783406121     #Channel for Embeds to go to
+matchGenerationChannel = 822347320427151360     #Channel for Embeds to go to
 playersPerLobby = 4                             #Cannot be odd number
-myGuildID = 813695785928884264                  #Used later to get myGuild
+myGuildID = 302692676099112960                  #Used later to get myGuild
 myGuild = None                                  #Guild for which Bot is run
-voiceChannelCategoryID = 816634104362827786     #Used later to get voiceChannelCategory
+voiceChannelCategoryID = 822346018598420490     #Used later to get voiceChannelCategory
 voiceChannelCategory = None                     #Category into which to make VCs
 
 #Text Channel IDs
-helpRegInfoLbTC = 821074253586890753
-queueTC = 821074288693739551
-matchGenTC = 821074270783406121
-postMatchTC = 821074415818899546
+helpRegInfoLbTC = 822347088057991208
+queueTC = 822347186133401620
+matchGenTC = 822347320427151360
+postMatchTC = 822347459811344394
 completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC]
 
 #Roles
