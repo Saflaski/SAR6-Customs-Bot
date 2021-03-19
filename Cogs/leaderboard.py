@@ -18,7 +18,7 @@ baseELO = 2000
 
 #For embed messages
 embedSideColor = 0x2425A2
-footerText = "R6TM Bot v0.1 | Use .h for help!"
+footerText = "SAR6C Leaderboards - Only author can flip pages | Use .h for help!"
 thumbnailURL= "https://cdn.discordapp.com/attachments/780358458993672202/780363791875440690/Untitled_design.gif"
 footerIcoURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 

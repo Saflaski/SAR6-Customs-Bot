@@ -16,7 +16,7 @@ matchesCol = db["matches_col"]
 baseELO = 2000
 embedSideColor = 0x2425A2
 embedTitleColor = 0xF64C72
-footerText = "R6TM Bot v0.1 | Use .h for help!"
+footerText = "SAR6C | Use .h for help!"
 footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
 thumbnailURL = "https://cdn.discordapp.com/attachments/780358458993672202/780363791875440690/Untitled_design.gif"
 
