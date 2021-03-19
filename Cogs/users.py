@@ -26,6 +26,10 @@ playersPerLobby = 4
 #Discord Values
 infoRegTC = 822347088057991208
 
+#Roles
+adminRole = "R6C Admin"
+userRole = "R6C"
+
 
 class Users(commands.Cog):
 
@@ -190,7 +194,7 @@ class Users(commands.Cog):
 
 	#Forceregister is basically the same as .register except only for high-permission users/admins
 	@commands.command(name = "forceregister")
-	@commands.has_permissions(ban_members=True) 		#To be changed to match a certain role or higher when deployed
+	@commands.has_any_role(adminRole)
 	async def forceRegister(self, ctx, member: discord.Member, uplayIGN, startingELO = baseELO):
 
 
@@ -233,9 +237,12 @@ class Users(commands.Cog):
 		targetUpdate = {"uplayIGN" : newUplayID}		#Preps dictionary for MongoDB update
 
 		myDoc = dbCol.find_one(myQuery)					#
+		if myDoc is None:
+			myEmbed = discord.Embed(description = "Please register first using `.register`", color = embedSideColor)
+            await ctx.send(embed = myEmbed)
+            return None
 
-		op_status = dbCol.update_one(myQuery, { '$set': targetUpdate})		#If you know how to use op_status to-
-																			#check if op was succesful, do add.
+		op_status = dbCol.update_one(myQuery, { '$set': targetUpdate})
 
 		print(f"{ctx.author} requested to change uplayID to {newUplayID}")	#logging
 

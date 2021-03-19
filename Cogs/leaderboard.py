@@ -133,7 +133,7 @@ class Leaderboard(commands.Cog):
 				#print("Timed_Out")		#Useless
 
 			if str(reaction.emoji) == right_arrow:
-				print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")
+				#print(f"Currentskip = {currentSkip}, limitPerPage = {limitPerPage}")
 
 				if currentSkip + limitPerPage >= maxLimit:			#Checks if it will go over limit i.e, the beginning
 					pass											#Doesn't update page if it goes over limit

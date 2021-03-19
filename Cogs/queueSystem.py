@@ -937,12 +937,12 @@ class QueueSystem(commands.Cog):
                 GVC[matchID] = [VC_A.id, VC_B.id]
 
                 #Start the map ban
-                asyncio.create_task(self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID))
+                asyncio.create_task(self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID, teamA_VCName, teamB_VCName))
                 print("Reached end")
                 break
 
 
-    async def mapbanSystem(self, MID, embedMessage, msg : discord.Message, capA_ID, capB_ID ):
+    async def mapbanSystem(self, MID, embedMessage, msg : discord.Message, capA_ID, capB_ID, teamA_VCName, teamB_VCName ):
 
         maplist = random.sample(MAP_POOL, k = 3)        #Randomly choose 3 unique maps from map pool
 
@@ -1033,7 +1033,9 @@ class QueueSystem(commands.Cog):
             print("Map not set")
 
         #Change the Embed to "GLHF"
-        embedMessage.set_footer(text = "GLHF for your match!", icon_url = footerIcoURL)
+        attackTeam = teamA_VCName.name
+        defenseTeam = teamB_VCName.name
+        embedMessage.set_footer(text = f"GLHF! Attack Team: {attackTeam}, Defense Team: {defenseTeam}", icon_url = footerIcoURL)
         await msg.edit(embed = embedMessage)
 
 
@@ -1256,7 +1258,7 @@ def getResultEmbed(MID, winTeamDict, lossTeamDict, winCapt, lossCapt, givenScore
     embedFooterText = ""
     if isPending :
         embedTitle = f"Match Result Update Pending: {MID}"
-        embedFooterText = f"Captains or 2x players, react with {check_mark} to confirm, {cross_mark} to cancel"
+        embedFooterText = f"Captains, react with {check_mark} to confirm, {cross_mark} to cancel"
     else:
         embedTitle = f"Match Result Confirmed: {MID}"
         embedFooterText = f"Results confirmed: {check_mark}"
