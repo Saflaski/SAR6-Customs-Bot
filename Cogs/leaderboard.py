@@ -15,6 +15,7 @@ dbCol = db["users_col"]
 
 #Global Variables
 baseELO = 2000
+autoLBrefresh = 20
 
 #For embed messages
 embedSideColor = 0x2425A2
@@ -170,7 +171,7 @@ class Leaderboard(commands.Cog):
 			pass		#To prevent clogging up terminal
 
 
-	@tasks.loop(seconds = 10)
+	@tasks.loop(seconds = autoLBrefresh)
 	async def autoLBGen(self):
 		global autoLeaderboardMessage
 		global autoLBChannel
@@ -183,7 +184,7 @@ class Leaderboard(commands.Cog):
 
 		else:
 			autoLBEmbed = getAutoLBEmbed()
-			await autoLeaderboardMessage.edit(embed = embedMessage)
+			await autoLeaderboardMessage.edit(embed = autoLBEmbed)
 
 
 def getAutoLBEmbed():
@@ -208,7 +209,7 @@ def getAutoLBEmbed():
 	#Generate Embed Object
 	myEmbed = discord.Embed(title = "Auto Leaderboard", color = embedSideColor)
 	myEmbed.add_field(name = f"Top 20 list:", value = embedContentString)
-	myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+	myEmbed.set_footer(text = f"Refreshes every {autoLBrefresh} seconds", icon_url = footerIcoURL)
 	myEmbed.set_thumbnail(url = thumbnailURL)
 
 	return myEmbed
