@@ -239,8 +239,8 @@ class Users(commands.Cog):
 		myDoc = dbCol.find_one(myQuery)					#
 		if myDoc is None:
 			myEmbed = discord.Embed(description = "Please register first using `.register`", color = embedSideColor)
-            await ctx.send(embed = myEmbed)
-            return None
+			await ctx.send(embed = myEmbed)
+			return None
 
 		op_status = dbCol.update_one(myQuery, { '$set': targetUpdate})
 

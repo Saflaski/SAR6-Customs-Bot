@@ -4,7 +4,7 @@ import datetime
 import asyncio
 import time
 import math
-from discord.ext import commands
+from discord.ext import commands, tasks
 from os import environ
 
 #settingup MongoDB
@@ -171,8 +171,7 @@ class Leaderboard(commands.Cog):
 
 
 	@tasks.loop(seconds = 10)
-    async def autoLBGen(self):
-
+	async def autoLBGen(self):
 		global autoLeaderboardMessage
 		global autoLBChannel
 
@@ -187,7 +186,6 @@ class Leaderboard(commands.Cog):
 			await autoLeaderboardMessage.edit(embed = embedMessage)
 
 
-
 def getAutoLBEmbed():
 
 	mydoc = dbCol.find().limit(20).sort("ELO",-1)
@@ -199,7 +197,7 @@ def getAutoLBEmbed():
 	for x in mydoc:
 		tempCounter += 1
 		if tempCounter <= 3:
-			uRank = place_medals[tempCounter - 1]
+			uRank = place_medals[tempCounter - 1] + '.'
 		else:
 			uRank = str(tempCounter) + '.'
 
