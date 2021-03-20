@@ -25,7 +25,7 @@ footerIcoURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 #Unicode reaction emojis
 left_arrow = '\u23EA'
 right_arrow = '\u23E9'
-place_medals = ['\UF001F947', '\UF001F948', '\UF001F949']
+place_medals = ['🥇', '🥈', '🥉']
 
 #Discord Values
 leaderBoardTC = 822347088057991208
@@ -40,7 +40,7 @@ class Leaderboard(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		print('Cog: "leaderboard" is ready.')
-		#self.autoLBGen.start()
+		self.autoLBGen.start()
 
 	#Channel Checks
 	def checkCorrectChannel(channelID = None, channelIDList = []):
