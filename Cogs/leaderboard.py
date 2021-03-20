@@ -25,10 +25,13 @@ footerIcoURL = "https://media.discordapp.net/attachments/780358458993672202/7853
 #Unicode reaction emojis
 left_arrow = '\u23EA'
 right_arrow = '\u23E9'
+place_medals = ['\UF001F947', '\UF001F948', '\UF001F949']
 
 #Discord Values
 leaderBoardTC = 822347088057991208
-
+autoLeaderboardTC = 822784280387518504
+autoLeaderboardMessage = None
+autoLBChannel = None
 
 class Leaderboard(commands.Cog):
 	def __init__(self, client):
@@ -37,6 +40,7 @@ class Leaderboard(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		print('Cog: "leaderboard" is ready.')
+		#self.autoLBGen.start()
 
 	#Channel Checks
 	def checkCorrectChannel(channelID = None, channelIDList = []):
@@ -165,6 +169,51 @@ class Leaderboard(commands.Cog):
 		if isinstance(error, commands.NoPrivateMessage):		#Not to be used in pvt message
 			pass		#To prevent clogging up terminal
 
+
+	@tasks.loop(seconds = 10)
+    async def autoLBGen(self):
+
+		global autoLeaderboardMessage
+		global autoLBChannel
+
+		if autoLeaderboardMessage == None and autoLBChannel == None:
+			#The LB Message hasn't been sent yet
+			autoLBEmbed = getAutoLBEmbed()
+			autoLBChannel = self.client.get_channel(autoLeaderboardTC)
+			autoLeaderboardMessage = await autoLBChannel.send(embed = autoLBEmbed)
+
+		else:
+			autoLBEmbed = getAutoLBEmbed()
+			await autoLeaderboardMessage.edit(embed = embedMessage)
+
+
+
+def getAutoLBEmbed():
+
+	mydoc = dbCol.find().limit(20).sort("ELO",-1)
+
+	embedContentString = ""			#Body of Embed Content
+	tempCounter = 0					#tempCounter used to assign rank to each user
+									#tempCounter + currentSkip = Actual rank of user
+
+	for x in mydoc:
+		tempCounter += 1
+		if tempCounter <= 3:
+			uRank = place_medals[tempCounter - 1]
+		else:
+			uRank = str(tempCounter) + '.'
+
+		#To query each doc and append details to the body of Embed Object
+		embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+
+
+	#Generate Embed Object
+	myEmbed = discord.Embed(title = "Auto Leaderboard", color = embedSideColor)
+	myEmbed.add_field(name = f"Top 20 list:", value = embedContentString)
+	myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+	myEmbed.set_thumbnail(url = thumbnailURL)
+
+	return myEmbed
 
 def setup(client):
 	client.add_cog(Leaderboard(client))

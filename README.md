@@ -67,7 +67,7 @@ A completely new user has to go through the following steps to get started:
 
 * **Post-match**
   1. Once a match has finished, any single player of a team (or in this case, let's use our new player) needs to go to `#post-match` and use `.result X-Y` where `X` is the score of the player's team and `Y` is the score of the opponent's team.
-  2. Once the Results panel is sent by the bot, the captains of each team need to click on ✅ to verify the score. On the other hand, if any *one* of the captains want to deny the result, them clicking on ❌ will deny the results panel.\
+  2. Once the Results panel is sent by the bot, the captains of each team need to click on ✅ to verify the score. On the other hand, if any *one* of the captains want to deny the result, then clicking on ❌ will deny the results panel.\
     *Note: The match results panel can be requested as many times as needed but the panel which gets confirmed will be the one to send the scores to database.*
   3. Once the results have been confirmed, the players are free to queue again in `#queue` or basically, go back to step 1 of **Joining Queue**
 
@@ -96,7 +96,7 @@ If a case arises where the new Elo is within a margin of `10` from the old Elo (
 *Note: Given exponent and K values updated as of version 1.0*
 
 ---
-### Planned Features
+### Potential Features
 * OCR/Image Processing to automatically process endgame screenshots
 * Microsoft TrueSkill system
 * Integration into R6S API (based on how useful it is)
