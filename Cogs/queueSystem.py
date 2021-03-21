@@ -1202,8 +1202,8 @@ def ongMatchFileOps(mode, MID, givenDict = None):
     #mode = W for Write, D for Delete, R for Read/Finding a match using MID
     MID = str(MID)
     if not os.path.exists("ONGOING_MATCHES.txt"):
-        print("\n\nFATAL ERROR: ONGOING_MATCHES.txt doesn't exist\n\n" )
-        print("Creating new file: ONGOING_MATCHES.txt")
+        print("\nONGOING_MATCHES.txt doesn't exist" )
+        print("Creating new file: ONGOING_MATCHES.txt\n")
         with open("ONGOING_MATCHES.txt", "a") as f:
             pass
 

@@ -32,7 +32,7 @@ place_medals = ['🥇', '🥈', '🥉']
 leaderBoardTC = 822347088057991208
 autoLeaderboardTC = 822784280387518504
 autoLeaderboardMessage = None
-autoLBChannel = None
+autoLBInfoChannel = None
 
 class Leaderboard(commands.Cog):
 	def __init__(self, client):
@@ -94,7 +94,10 @@ class Leaderboard(commands.Cog):
 
 			for x in mydoc:
 				tempCounter += 1
-				uRank = str(currentSkip + tempCounter) + '.'
+				if tempCounter + currentSkip <= 3:
+					uRank = place_medals[tempCounter - 1] + '.'
+				else:
+					uRank = str(currentSkip + tempCounter) + '.'
 
 				#To query each doc and append details to the body of Embed Object
 				embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
@@ -174,17 +177,37 @@ class Leaderboard(commands.Cog):
 	@tasks.loop(seconds = autoLBrefresh)
 	async def autoLBGen(self):
 		global autoLeaderboardMessage
-		global autoLBChannel
+		global autoLBInfoChannel
 
-		if autoLeaderboardMessage == None and autoLBChannel == None:
-			#The LB Message hasn't been sent yet
+		def checkIfBotMsg(botMsg):
+			return botMsg.author == self.client.user
+
+		if autoLeaderboardMessage == None and autoLBInfoChannel == None:
+			#The LB and Info Message haven't been sent yet
+
+			autoLBInfoChannel = self.client.get_channel(autoLeaderboardTC)
+
+			#Purge previous messages
+			await autoLBInfoChannel.purge(check = checkIfBotMsg)
+
+			#Send Info
+			with open("commands.txt") as f:
+				commandsTextFile = f.read()
+			infoEmbed = discord.Embed(title = "Help", color = embedSideColor)
+			infoEmbed.add_field(name = f"Commands:", value = commandsTextFile)
+			infoEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+			infoEmbed.set_thumbnail(url = thumbnailURL)
+			await autoLBInfoChannel.send(embed = infoEmbed)
+
+			#Send the new LB
 			autoLBEmbed = getAutoLBEmbed()
-			autoLBChannel = self.client.get_channel(autoLeaderboardTC)
-			autoLeaderboardMessage = await autoLBChannel.send(embed = autoLBEmbed)
+			autoLeaderboardMessage = await autoLBInfoChannel.send(embed = autoLBEmbed)
+
 
 		else:
 			autoLBEmbed = getAutoLBEmbed()
 			await autoLeaderboardMessage.edit(embed = autoLBEmbed)
+
 
 
 def getAutoLBEmbed():
