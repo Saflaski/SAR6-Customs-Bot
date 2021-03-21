@@ -115,7 +115,9 @@ class QueueSystem(commands.Cog):
         #Loops every 1 second
         self.findPossibleLobby.start()
         self.findGeneratedLobby.start()
+
         self.setBotStatus.start()
+        #self.testLoop.start()
 
 
         #Set guild and VC Category
@@ -394,7 +396,7 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(adminRole)
     @commands.command(name = "cancelmatch")
-    async def cancelMatch(self, ctx, matchID):
+    async def cancelMatch(self, ctx = None, matchID = None):
         global PIOM
         global GVC
         #Sets the Database score to C-C
@@ -428,7 +430,12 @@ class QueueSystem(commands.Cog):
                     print(e)
                     fString +="Could not delete VCs"
 
-        await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
+        if ctx is not None:
+            await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
+        else:
+            matchgenchannel = self.client.get_channel(matchGenerationChannel)
+            msg = await matchgenchannel.send(embed = discord.Embed(description = fString, color = embedSideColor))
+
 
     @cancelMatch.error
     async def cancelMatch_error(self, ctx, error):
@@ -928,7 +935,7 @@ class QueueSystem(commands.Cog):
                 #Send Generated Match Embed
                 channel = self.client.get_channel(matchGenerationChannel)
                 msg = await channel.send(embed = embeddedContent)
-
+                msg_url = msg.jump_url
                 #Make Voice Channels with captains' names
                 VC_A = await myGuild.create_voice_channel(name = f"Team: {teamA_VCName}", category = voiceChannelCategory)
                 VC_B = await myGuild.create_voice_channel(name = f"Team: {teamB_VCName}", category = voiceChannelCategory)
@@ -938,7 +945,15 @@ class QueueSystem(commands.Cog):
 
                 #Start the map ban
                 asyncio.create_task(self.mapbanSystem(matchID, embeddedContent, msg, CapA_ID, CapB_ID, teamA_VCName, teamB_VCName))
-                print("Reached end")
+
+                #Send DMs to users
+                for playerID in pList:
+                    playerObj = await self.client.fetch_user(playerID)
+                    if playerObj is not None:
+                        dmEmbed = discord.Embed(title = "Match Found - SAR6", description = f"Click [here]({msg_url}) to go straight to the match panel.", color = embedSideColor)
+                        dmEmbed.set_thumbnail(url = thumbnailURL)
+                        await playerObj.send(embed = dmEmbed)
+                print("Match Gen Cycle complete")
                 break
 
 
@@ -983,16 +998,17 @@ class QueueSystem(commands.Cog):
             return (userCond and reactionCond)
 
         #30 second timer for banning maps
-        timeout = 300
+        timeout = 600
         timeout_start = time.time()     #Starts keeping track of time
 
         lastMap = ""
 
         while time.time() < timeout_start + timeout:
             try:
-                myreaction, myuser = await self.client.wait_for('reaction_add',timeout = 300.0, check = check)
+                myreaction, myuser = await self.client.wait_for('reaction_add',timeout = 600.0, check = check)
             except asyncio.TimeoutError:
                 print("Map Ban timed out")
+                break
 
             #If there has been a valid emoji reaction
             if myreaction is not None:
@@ -1028,15 +1044,19 @@ class QueueSystem(commands.Cog):
 
         if len(lastMap) != 0:
             matchesCol.update_one({"MID": MID },{"$set" : {"map" : lastMap}})
+            attackTeam = teamA_VCName
+            defenseTeam = teamB_VCName
+            embedMessage.set_footer(text = f"GLHF! Attack Team: {attackTeam}, Defense Team: {defenseTeam}", icon_url = footerIcoURL)
+            await msg.edit(embed = embedMessage)
             print(f"Map set: {lastMap}")
         else:
             print("Map not set")
+            embedMessage.set_footer(text = f"Maps were not selected, match cancelled.", icon_url = footerIcoURL)
+            await self.cancelMatch(matchID = MID)
+            await msg.edit(embed = embedMessage)
+            await msg.clear_reactions()
 
-        #Change the Embed to "GLHF"
-        attackTeam = teamA_VCName.name
-        defenseTeam = teamB_VCName.name
-        embedMessage.set_footer(text = f"GLHF! Attack Team: {attackTeam}, Defense Team: {defenseTeam}", icon_url = footerIcoURL)
-        await msg.edit(embed = embedMessage)
+
 
 
     #### TESTING PURPOSES ####
@@ -1059,10 +1079,17 @@ class QueueSystem(commands.Cog):
         except Exception as e:
             print(e)
 
-
+    @commands.command(name = "TESTTEST")
+    async def TESTTEST(self = None, ctx = None, MID = None):
+        print(self)
+        print(ctx)
+        print(MID)
 
     #### TESTING PURPOSES ####
 
+    @tasks.loop(seconds = 10)
+    async def testLoop(self):
+        await self.TESTTEST(MID = "someMID")
 
 
 
