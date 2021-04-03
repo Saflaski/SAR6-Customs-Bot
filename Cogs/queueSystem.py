@@ -1340,7 +1340,7 @@ def getMatchEmbed(matchID, playerInfo , dicTeamA, dicTeamB, captainTeamA, captai
     myEmbed.add_field(name = "MatchID: ", value = matchID, inline = True)
     myEmbed.add_field(name = f"Team A (Captain: {playerInfo[captainTeamA][0]}):", value = teamAstr, inline = False)
     myEmbed.add_field(name = f"Team B (Captain: {playerInfo[captainTeamB][0]}):", value = teamBstr, inline = False)
-    myEmbed.set_footer(text = "React with given emoji to BAN the corresponding map", icon_url = footerIcoURL)
+    myEmbed.set_footer(text = "Captains, react with given emoji to BAN the corresponding map", icon_url = footerIcoURL)
 
     return myEmbed
 
