@@ -235,6 +235,7 @@ class QueueSystem(commands.Cog):
             GQL.remove(member.id)
             #queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
             await ctx.message.add_reaction(check_mark)
+            print(f"{member} has left the Global Queue")
 
         else:
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
