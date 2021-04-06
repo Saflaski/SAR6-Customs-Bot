@@ -7,7 +7,7 @@ import logging
 from os import environ
 
 from discord.ext import commands
-
+from discord.ext.commands import has_permissions, MissingPermissions
 #set bot prefix
 client = commands.Bot(command_prefix = '.')
 
@@ -73,10 +73,12 @@ async def adminhelp(ctx):
 
 #Setup Cogs
 @client.command()
+@has_permissions(ban_members=True)
 async def load(ctx, extension):
 	client.load_extension(f'Cogs.{extension}')
 
 @client.command()
+@has_permissions(ban_members=True)
 async def unload(ctx,extension):
 	client.unload_extension(f'Cogs.{extension}')
 
