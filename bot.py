@@ -82,6 +82,16 @@ async def load(ctx, extension):
 async def unload(ctx,extension):
 	client.unload_extension(f'Cogs.{extension}')
 
+@load.error
+async def load_error(ctx, error):
+	if isinstance(error, MissingPermissions):
+		print(f"{ctx.author} tried to use LOAD")
+
+@unload.error
+async def unload_error(ctx, error):
+	if isinstance(error, MissingPermissions):
+		print(f"{ctx.author} tried to use UNLOAD")
+
 for filename in os.listdir('./Cogs'):
 	if filename.endswith('.py'):
 		print(f'Cog found: {filename}')
