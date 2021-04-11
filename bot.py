@@ -4,6 +4,7 @@ import discord
 import os
 import pymongo
 import logging
+import json
 from os import environ
 
 from discord.ext import commands
@@ -39,11 +40,20 @@ dbCol = db["users_col"]
 #TOKEN SETUP
 TOKEN = environ["DISCORD_TOKEN"]
 
+#Discord Server Vals
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+serverName = discServInfo["serverName"]
+
+
 
 #Say Hi
 @client.event
 async def on_ready():
 	print("Bot is ready.")
+	print(f"Started operations in {serverName}")
+
 
 
 @client.command(aliases = ['h','commands'])
@@ -79,8 +89,14 @@ async def load(ctx, extension):
 
 @client.command()
 @has_permissions(ban_members=True)
-async def unload(ctx,extension):
+async def unload(ctx, extension):
 	client.unload_extension(f'Cogs.{extension}')
+
+@client.command()
+@has_permissions(ban_members=True)
+async def reloadcog(ctx,extension):
+	client.unload_extension(f'Cogs.{extension}')
+	client.load_extension(f'Cogs.{extension}')
 
 @load.error
 async def load_error(ctx, error):

@@ -4,6 +4,7 @@ import datetime
 import asyncio
 import time
 import math
+import json
 from discord.ext import commands, tasks
 from os import environ
 
@@ -29,8 +30,13 @@ right_arrow = '\u23E9'
 place_medals = ['🥇', '🥈', '🥉']
 
 #Discord Values
-leaderBoardTC = 822347088057991208
-autoLeaderboardTC = 822784280387518504
+
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+discTextChannels = discServInfo["TextChannels"]
+leaderBoardTC = discTextChannels["helpRegInfo"]
+autoLeaderboardTC = discTextChannels["autoLB"]
 autoLeaderboardMessage = None
 autoLBInfoChannel = None
 

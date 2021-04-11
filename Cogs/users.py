@@ -2,6 +2,7 @@ import discord
 import pymongo
 import datetime
 import re
+import json
 from os import environ
 from discord.ext import commands
 
@@ -24,7 +25,10 @@ thumbnailURL = "https://cdn.discordapp.com/attachments/780358458993672202/780363
 playersPerLobby = 4
 
 #Discord Values
-infoRegTC = 822347088057991208
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+infoRegTC = discServInfo["TextChannels"]["helpRegInfo"]
 
 #Roles
 adminRole = "R6C Admin"
@@ -221,7 +225,7 @@ class Users(commands.Cog):
 
 
 	@forceRegister.error
-	async def register_error(self, ctx, error):
+	async def forceRegister_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send('Usage: !forceregister <@discordID> <uplayID> <startingELO>')
 
@@ -242,7 +246,7 @@ class Users(commands.Cog):
 			await ctx.send(embed = myEmbed)
 			return None
 
-		op_status = dbCol.update_one(myQuery, { '$set': targetUpdate})
+		dbCol.update_one(myQuery, { '$set': targetUpdate})
 
 		print(f"{ctx.author} requested to change uplayID to {newUplayID}")	#logging
 
