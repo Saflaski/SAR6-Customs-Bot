@@ -218,7 +218,7 @@ class Leaderboard(commands.Cog):
 
 def getAutoLBEmbed():
 
-	mydoc = dbCol.find().limit(20).sort("ELO",-1)
+	mydoc = dbCol.find().limit(10).sort("ELO",-1)
 
 	embedContentString = ""			#Body of Embed Content
 	tempCounter = 0					#tempCounter used to assign rank to each user
@@ -237,7 +237,7 @@ def getAutoLBEmbed():
 
 	#Generate Embed Object
 	myEmbed = discord.Embed(title = "Auto Leaderboard", color = embedSideColor)
-	myEmbed.add_field(name = f"Top 20 list:", value = embedContentString)
+	myEmbed.add_field(name = f"Top 10 list:", value = embedContentString)
 	myEmbed.set_footer(text = f"Refreshes every {autoLBrefresh} seconds", icon_url = footerIcoURL)
 	myEmbed.set_thumbnail(url = thumbnailURL)
 

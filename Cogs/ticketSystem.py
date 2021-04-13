@@ -29,6 +29,7 @@ thumbnailURL = "https://cdn.discordapp.com/attachments/780358458993672202/780363
 
 #Global variables
 ticketTimeOut = 120
+check_mark = '\u2705'
 
 #Discord Values
 with open("ServerInfo.json") as jsonFile:
@@ -37,6 +38,11 @@ with open("ServerInfo.json") as jsonFile:
 discTextChannels = discServInfo["TextChannels"]
 infoRegTC = discTextChannels["helpRegInfo"]
 helpDeskTC = discTextChannels["help"]
+queueTC = discTextChannels["queue"]
+matchGenTC = discTextChannels["matchGen"]
+postMatchTC = discTextChannels["postMatch"]
+ticketsTC = discTextChannels["tickets"]
+completeChannelList = [postMatchTC, helpDeskTC, ticketsTC]
 
 #Roles
 adminRole = "R6C Admin"
@@ -64,8 +70,8 @@ class TicketSystem(commands.Cog):
 
 	@commands.has_any_role(userRole, adminRole)
 	@commands.command(name = "openticket")
-	@checkCorrectChannel(channelID = helpDeskTC)
-	async def openTicket(self, ctx, matchID = None):
+	@checkCorrectChannel(channelIDList = completeChannelList)
+	async def openTicket(self, ctx):
 		
 		#DM the user
 		playerObj = ctx.author
@@ -75,7 +81,7 @@ class TicketSystem(commands.Cog):
 		prepMsg = 	(
 					"__**Preparing Ticket**__"
 
-					"\nPlease enter a valid subject/title alternatively" 
+					"\nPlease enter a valid subject/title **OR** alternatively" 
 					" choose (copy-paste) one of the following options"
 					" *(you can give a description after this step)*:"
 					)
@@ -84,7 +90,8 @@ class TicketSystem(commands.Cog):
 						"```\n"
 						"Report Player for Cheating\n"
 						"Report Player for High Ping\n"
-						"Report Player Absence \n"
+						"Report Player for Toxicity\n"
+						"Report Player Absence\n"
 						"Report Player for other reasons\n"
 						"Report Delay in Lobby Formation\n"
 						"Report Match Fixing\n"
@@ -113,22 +120,37 @@ class TicketSystem(commands.Cog):
 
 
 
-		def checkEvidence(msg):							#Check if message either has an attachment or a URL
-			if len(msg.attachments[0].url) != 0:
-				return msg.attachments[0].url, "attachment"
-			elif urlValidator(msg.content):
-				return msg.content, "extURL"
+		def getEvidence(msg):							#Check if message either has an attachment or a URL
+			if len(msg.attachments) != 0:
+				for attachment in msg.attachments:
+					return [attachment.url, ]			#Caller needs a list yo
+			elif urlFinder(msg.content):
+				return urlFinder(msg.content)			#Returns list of URLs, returns False if none found
 			else:
 				return None
 			
 		
-		"""
-		while time.time() < timeout_start + timeout:
-			prepReply = await self.client.wait_for('message', check = checkIfAuthorDM)
-			print(f"Content: {prepReply.content}")
-			print(f"Attachments: {prepReply.attachments}")
-		"""
-		#Get Subject and Description
+		async def generateTicket(pendingConf = True):
+
+			#Get UTC Date and Time
+			ticDateTime = datetime.datetime.utcnow().replace(microsecond= 0)
+
+			#Get Author
+			tickAuth = str(playerObj)
+
+			#Generate Ticket Embed
+			ticketEmbed = genTicketEmbed(ticketID, tickAuth, ticketSubject, ticketDesc, ticketEvidences, ticDateTime)
+			await playerObj.send(content = "Generated Ticket", embed = ticketEmbed)
+			ticketsChannel = self.client.get_channel(ticketsTC)
+			await ticketsChannel.send(content = "New Ticket", embed = ticketEmbed)
+			
+			#Upload a new ticket to MongoDB
+			try:
+				ticketsCol.insert_one({"Id": ticketID, "Auth": tickAuth, "Sub": ticketSubject, 
+								"Desc": ticketDesc, "Evid": ticketEvidences, "Datetime" : ticDateTime,
+								"Status": "Open", "Remarks" : "None"})			#Remarks field is for remarks or comments by an admin
+			except Exception as e:
+				print(f"Openticket MongoDB Error: {e}")
 
 		currentStage = 1
 
@@ -136,11 +158,6 @@ class TicketSystem(commands.Cog):
 		ticketDesc = ""
 		ticketEvidences = []
 
-		
-
-
-
-		
 		while currentStage <= 3:
 			try:
 				authorReply = await self.client.wait_for('message', timeout = timeout, check = checkIfAuthorDM)
@@ -167,12 +184,13 @@ class TicketSystem(commands.Cog):
 			elif currentStage == 2:
 				ticketDesc = authorReply.content
 				
-				if len(ticketDesc) > 10 or ticketDesc == "none":					
+				if len(ticketDesc) > 10 or ticketDesc == "none":
+					if ticketDesc == "none":
+						ticketDesc = ticketDesc.capitalize()		#Purely cosmetic purposes					
 					currentStage += 1
-					print("reached")
 					#Send instructions for attachments
-					await playerObj.send("You can now add attachments. To stop attaching attachments or"
-									" if you want to skip this step, use `done`")
+					await playerObj.send("You can now add attachments or add links. To stop attaching or"
+										" if you want to skip this step, use `done`")
 				else:
 					await playerObj.send("Inadequate description length, try again.")
 				
@@ -180,36 +198,95 @@ class TicketSystem(commands.Cog):
 			elif currentStage == 3:
 				try:
 					if authorReply.content == "done":
-						#generateTicket()
 						ticketID = genTicketID()
-						await playerObj.send(f"Generated ticket with ID: `{ticketID}`")
-						#show embed of ticket
+						await generateTicket()		#show embed of ticket and upload to DB
 						currentStage += 1
-					elif checkEvidence(authorReply) is not None:
-						#Append the evidence
-						#print(authorReply.attachments[0].url)
-						pass
 
+					elif getEvidence(authorReply) is not None:
+						evidenceList = getEvidence(authorReply)
+						for evidence in evidenceList:
+							ticketEvidences.append(evidence)
+						#ticketEvidences.append(getEvidence(authorReply))
+						await authorReply.add_reaction(check_mark)
 					else:
-						await playerObj.send("You didn't attach anything, try again.")
+						await playerObj.send("You didn't attach anything relevant, try again.")
+
 				except Exception as e:
 					print(e)
-
-
-		print(ticketSubject)
-		print(ticketDesc)
-		print(ticketEvidences)
-		print(currentStage)
 		
 
-		
-			
 
 	@openTicket.error
 	async def openTicketError(self, ctx, error):
 		if isinstance(error, commands.CheckFailure):
 			pass
+
+	@commands.has_any_role(userRole, adminRole)
+	@commands.command(name = "findticket")
+	@checkCorrectChannel(channelIDList = completeChannelList)
+	async def findTicket(self, ctx, matchID):
 		
+		queryResult = ticketsCol.find_one({"Id" : matchID})
+		if queryResult is not None:
+			ticID = matchID
+			ticAuth = queryResult["Auth"]
+			ticSub = queryResult["Sub"]
+			ticDesc = queryResult["Desc"]
+			ticEvid = queryResult["Evid"]
+			ticDateTime = queryResult["Datetime"]
+			ticStat = queryResult["Status"]
+			ticRemarks = queryResult["Remarks"]
+		
+			ticketEmbed = genTicketEmbed(ticID, ticAuth, ticSub, ticDesc,
+						ticEvid, ticDateTime, ticStat, ticRemarks)
+			await ctx.send(embed = ticketEmbed)
+			
+		else:
+			ctx.send("Ticket not found")
+
+	@findTicket.error
+	async def findTicketError(self, ctx, error):
+		if isinstance(error, commands.CheckFailure):
+			print(error)
+		elif isinstance(error, commands.MissingRequiredArgument):
+			await ctx.send("Try `.findticket <match ID>` without <>")
+
+
+	@commands.has_any_role(adminRole)
+	@commands.command(name = "closeticket")
+	@checkCorrectChannel(channelIDList = completeChannelList)
+	async def closeTicket(self, ctx, matchID, givenRemark = "None"):
+
+		
+
+		queryResult = ticketsCol.find_one_and_update({"Id" : matchID}, {'$set' : {"Status" : "Closed",
+														"Remarks" : givenRemark}}
+													)
+		if queryResult is not None:
+			ticID = matchID
+			ticAuth = queryResult["Auth"]
+			ticSub = queryResult["Sub"]
+			ticDesc = queryResult["Desc"]
+			ticEvid = queryResult["Evid"]
+			ticDateTime = queryResult["Datetime"]
+			ticStat = "Closed"
+			ticRemarks = givenRemark
+		
+			ticketEmbed = genTicketEmbed(ticID, ticAuth, ticSub, ticDesc,
+						ticEvid, ticDateTime, ticStat, ticRemarks)
+			await ctx.send(embed = ticketEmbed)
+
+		else:
+			await ctx.send("Ticket not found")
+
+	@closeTicket.error
+	async def closeTicketError(self, ctx, error):
+		if isinstance(error, commands.CheckFailure):
+			pass
+		elif isinstance(error, commands.MissingRequiredArgument):
+			await ctx.send("Try `.closeticket <match ID> <remarks>` without <>")
+
+
 def genTicketID():
     """
     Generates unique alphanumeric token of length 8
@@ -221,17 +298,68 @@ def genTicketID():
     ticketID = ''.join(secrets.choice(alphabet) for i in range(6))
     return ticketID
 
-def urlValidator(givenURL):
+def urlFinder(givenString):					#Tries to find valid URLs
 	regex = re.compile(
-		r'^(?:http|ftp)s?://' # http:// or https://
-		r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-		r'localhost|' #localhost...
-		r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-		r'(?::\d+)?' # optional port
-		r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+			"(((http|https)://)(www.)?" +
+			"[a-zA-Z0-9@:%._\\+~#?&//=]" +
+			"{2,256}\\.[a-z]" +
+			"{2,6}\\b([-a-zA-Z0-9@:%" +
+			"._\\+~#?&//=]*))", re.IGNORECASE)
 
-	return (re.match(regex, givenURL) is not None)		#If no URL found, then it returns False, otherwise True
+	if len(regex.findall(givenString)) != 0:
+		pass
+		URLs = []
+		for url in regex.findall(givenString):
+			URLs.append(url[0])
+		return URLs							#Returns a list of URLs if found
+	else:
+		return False
 
+def genTicketEmbed(ticketID, ticAuth, ticSubject, ticDesc, ticEvidArr, ticDateTime = None, ticStat = "Open", ticRemarks = "None"):
+
+
+	#Link Sorting
+	#ticketEvidenceDict = {}
+	ytLinkCounter = 1
+	discAttCounter = 1
+	otherLinkCounter = 1
+	ytEvidStr = ""
+	otherEvidStr = ""
+	discEvidStr = ""
+
+	if len(ticEvidArr) != 0:
+		for evidence in ticEvidArr:
+			if "youtube" in evidence or "youtu.be" in evidence:
+				#ticketEvidenceDict[f"YT Link {ytLinkCounter}"] = ticEvidArr[evidence]
+				ytEvidStr += f"[YT Link {ytLinkCounter}]({evidence})\n"
+				ytLinkCounter += 1
+			elif "discordapp" in evidence:
+				#ticketEvidenceDict[f"Discord Attachment {discAttCounter}"] = ticEvidArr[evidence]
+				discEvidStr += f"[Attachment {discAttCounter}]({evidence})\n"
+				discAttCounter += 1
+			else :
+				#ticketEvidenceDict[f"Other link {otherLinkCounter}"] = ticEvidArr[evidence]
+				otherEvidStr += f"[Other link {otherLinkCounter}]({evidence})\n"
+				otherLinkCounter += 1
+	else:
+		otherEvidStr = "None"
+	if ticStat == "Open":
+		embedColor = 0xFF4500
+	else:
+		embedColor = 0x00FF00
+
+
+	ticketEmbed=discord.Embed(title="SAR6C Ticket",
+							description=f"Subject: {ticSubject}\nID: `{ticketID}`\nAuthor: {ticAuth}", 
+							color=embedColor, timestamp = ticDateTime)
+	ticketEmbed.add_field(name="Description", value=ticDesc, inline = False)
+	ticketEmbed.add_field(name="Evidences Provided", value= "".join([ytEvidStr, discEvidStr, otherEvidStr]), inline = False)
+	ticketEmbed.add_field(name = "Status", value = ticStat, inline = False)
+	if ticRemarks != "None":
+		ticketEmbed.add_field(name = "Remarks", value = ticRemarks, inline = False)
+	ticketEmbed.set_footer(text = f"Local time when ticket generated - ", icon_url = footerIcoURL)
+	
+	return ticketEmbed
 
 
 def setup(client):

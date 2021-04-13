@@ -20,9 +20,11 @@ footerText = "SAR6C | Use .h for help!"
 footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
 thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
 embedSideColor = 0x2425A2
+check_mark = '\u2705'
 
 #logging errors
-							#Not being used because unable to install logging on Windows #nvm
+							#Not being used
+
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
@@ -30,6 +32,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 
 #End of log
+
 
 #MongoDB setup
 mongoCredURL = environ["MONGODB_PASS"]
@@ -97,6 +100,7 @@ async def unload(ctx, extension):
 async def reloadcog(ctx,extension):
 	client.unload_extension(f'Cogs.{extension}')
 	client.load_extension(f'Cogs.{extension}')
+	await ctx.message.add_reaction(check_mark)
 
 @load.error
 async def load_error(ctx, error):
