@@ -112,7 +112,7 @@ class TicketSystem(commands.Cog):
 			
 
 		async def checkIfCancel(message):				#Check if user used cancel
-			if message.content == "cancel":
+			if message.content.lower() == "cancel":
 				await playerObj.send("*Ticket Cancelled. Use* `.openticket` *in the server's channel to open a new ticket*")
 				return True
 			else:
@@ -157,6 +157,7 @@ class TicketSystem(commands.Cog):
 		ticketSubject = ""
 		ticketDesc = ""
 		ticketEvidences = []
+		totalStringLength = ""			#For attachments embed as it has a max length of 1024 chars
 
 		while currentStage <= 3:
 			try:
@@ -171,8 +172,8 @@ class TicketSystem(commands.Cog):
 			
 			if currentStage == 1:
 				ticketSubject = authorReply.content
-				if len(ticketSubject) < 10:
-					await playerObj.send("Ticket Length inadequate")
+				if len(ticketSubject) < 10 or len(ticketSubject) > 900:
+					await playerObj.send("Ticket Subject Length inadequate or too large")
 				else:
 					#Upload to DB
 					await playerObj.send("Please enter a complete description of the problem, try "
@@ -184,9 +185,9 @@ class TicketSystem(commands.Cog):
 			elif currentStage == 2:
 				ticketDesc = authorReply.content
 				
-				if len(ticketDesc) > 10 or ticketDesc == "none":
-					if ticketDesc == "none":
-						ticketDesc = ticketDesc.capitalize()		#Purely cosmetic purposes					
+				if (len(ticketDesc) > 10 or ticketDesc.lower() == "none") and len(ticketDesc) < 900:		#Checks if valid length or if it's none
+					if ticketDesc.lower() == "none":
+						ticketDesc = ticketDesc.lower().capitalize()		#Purely cosmetic purposes					
 					currentStage += 1
 					#Send instructions for attachments
 					await playerObj.send("You can now add attachments or add links. To stop attaching or"
@@ -197,15 +198,23 @@ class TicketSystem(commands.Cog):
 
 			elif currentStage == 3:
 				try:
-					if authorReply.content == "done":
+					if authorReply.content.lower() == "done":
 						ticketID = genTicketID()
 						await generateTicket()		#show embed of ticket and upload to DB
 						currentStage += 1
 
 					elif getEvidence(authorReply) is not None:
 						evidenceList = getEvidence(authorReply)
-						for evidence in evidenceList:
-							ticketEvidences.append(evidence)
+						
+						if len(totalStringLength) < 850:
+							for evidence in evidenceList:
+								ticketEvidences.append(evidence)
+								totalStringLength += evidence
+						else:
+							await authorReply.send("You're trying to add too many links, please use "
+												"a cloud-storage platform (eg. G-drive shareable link) or "
+												"create a separate ticket referencing this ticket in the subject line")
+
 						#ticketEvidences.append(getEvidence(authorReply))
 						await authorReply.add_reaction(check_mark)
 					else:
@@ -242,7 +251,7 @@ class TicketSystem(commands.Cog):
 			await ctx.send(embed = ticketEmbed)
 			
 		else:
-			ctx.send("Ticket not found")
+			await ctx.send("Ticket not found")
 
 	@findTicket.error
 	async def findTicketError(self, ctx, error):
