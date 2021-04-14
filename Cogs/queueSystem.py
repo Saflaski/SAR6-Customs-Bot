@@ -12,6 +12,7 @@ import ast
 import random
 import math
 import statistics
+import json
 from os import environ
 from discord.ext import commands, tasks
 from itertools import combinations
@@ -50,18 +51,23 @@ GVC = {}
 #Global Variables
 
 ##Discord Values##
-matchGenerationChannel = 822347320427151360     #Channel for Embeds to go to
-playersPerLobby = 4                             #Cannot be odd number
-myGuildID = 302692676099112960                  #Used later to get myGuild
-myGuild = None                                  #Guild for which Bot is run
-voiceChannelCategoryID = 822346018598420490     #Used later to get voiceChannelCategory
-voiceChannelCategory = None                     #Category into which to make VCs
+
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+
+playersPerLobby = 4                                         #Cannot be odd number
+myGuildID = discServInfo["guildID"]                         #Used later to get myGuild
+myGuild = None                                              #Guild for which Bot is run
+voiceChannelCategoryID = discServInfo["vcCategoryID"]       #Used later to get voiceChannelCategory
+voiceChannelCategory = None                                 #Category into which to make VCs
 
 #Text Channel IDs
-helpRegInfoLbTC = 822347088057991208
-queueTC = 822347186133401620
-matchGenTC = 822347320427151360
-postMatchTC = 822347459811344394
+discTextChannels = discServInfo["TextChannels"]
+helpRegInfoLbTC = discTextChannels["helpRegInfo"]
+queueTC = discTextChannels["queue"]
+matchGenTC = discTextChannels["matchGen"]
+postMatchTC = discTextChannels["postMatch"]
 completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC]
 
 #Roles
@@ -434,7 +440,8 @@ class QueueSystem(commands.Cog):
         if ctx is not None:
             await ctx.send(embed = discord.Embed(description = fString, color = embedSideColor))
         else:
-            matchgenchannel = self.client.get_channel(matchGenerationChannel)
+            #In cases where cancelMatch is called by an automated function
+            matchgenchannel = self.client.get_channel(matchGenTC)
             msg = await matchgenchannel.send(embed = discord.Embed(description = fString, color = embedSideColor))
 
 
@@ -934,7 +941,7 @@ class QueueSystem(commands.Cog):
                 embeddedContent, teamA_VCName, teamB_VCName, CapA_ID, CapB_ID = generateTeams(matchID, pList)
 
                 #Send Generated Match Embed
-                channel = self.client.get_channel(matchGenerationChannel)
+                channel = self.client.get_channel(matchGenTC)
                 msg = await channel.send(embed = embeddedContent)
                 msg_url = msg.jump_url
                 #Make Voice Channels with captains' names
