@@ -28,7 +28,7 @@ footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427
 thumbnailURL = "https://cdn.discordapp.com/attachments/780358458993672202/780363791875440690/Untitled_design.gif"
 
 #Global variables
-ticketTimeOut = 120
+ticketTimeOut = 180
 check_mark = '\u2705'
 
 #Discord Values
@@ -210,13 +210,14 @@ class TicketSystem(commands.Cog):
 							for evidence in evidenceList:
 								ticketEvidences.append(evidence)
 								totalStringLength += evidence
+							await authorReply.add_reaction(check_mark)
+							
 						else:
-							await authorReply.send("You're trying to add too many links, please use "
+							await playerObj.send("You're trying to add too many links, please use "
 												"a cloud-storage platform (eg. G-drive shareable link) or "
 												"create a separate ticket referencing this ticket in the subject line")
 
 						#ticketEvidences.append(getEvidence(authorReply))
-						await authorReply.add_reaction(check_mark)
 					else:
 						await playerObj.send("You didn't attach anything relevant, try again.")
 
