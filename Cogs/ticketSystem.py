@@ -328,11 +328,11 @@ class TicketSystem(commands.Cog):
 		elif isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send("Try `.closeticket <match ID> <remarks>` without <>")
 
-	@tasks.loop(seconds = 10)
+	@tasks.loop(seconds = ticketAlert)
 	async def autoTicketCHUpdate(self):
 		#Count all open tickets
 
-		ticketNum = ticketsCol.find({"Status" : "Open"}).count()
+		ticketNum = ticketsCol.count_documents({"Status" : "Open"})
 		if ticketNum != 0:
 			chNameString = f"🔴-{ticketNum}"
 		else:
