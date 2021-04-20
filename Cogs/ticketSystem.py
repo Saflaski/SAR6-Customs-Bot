@@ -58,7 +58,7 @@ class TicketSystem(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		print('Cog: "ticketSystem" is ready.')
-		self.autoTicketCHUpdate.start()
+		#self.autoTicketCHUpdate.start()		#Doesn't work
 
 	#Channel Checks
 	def checkCorrectChannel(channelID = None, channelIDList = []):
@@ -333,13 +333,18 @@ class TicketSystem(commands.Cog):
 		#Count all open tickets
 
 		ticketNum = ticketsCol.count_documents({"Status" : "Open"})
+		print(ticketNum)
 		if ticketNum != 0:
 			chNameString = f"🔴-{ticketNum}"
-		else:
+		elif ticketNum == 0:
 			chNameString = f"🟢"
-		ticketChannel = await self.client.fetch_channel(ticketsTC)
-		newChannelName = f"r6s-tickets-{chNameString}"
-		await ticketChannel.edit(name = newChannelName)
+		print(chNameString)
+		try:
+			ticketChannel = self.client.get_channel(ticketsTC)
+			newChannelName = f"r6s-tickets-{chNameString}"
+			#await ticketChannel.edit(name = newChannelName)
+		except Exception as e:
+			print(e)
 
 
 
