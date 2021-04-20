@@ -14,7 +14,10 @@
 **Post-match**
 `.result <score>` -> Upload score for a match you're in
 *Score should be in the format <your team's score>-<their team's score>*
-*Eg. If you win 7-5, then it's `.result 7-5`*
+*Eg. If you win 7-5, then it's `.result 7-5`, if you lose 5-7, `result 5-7`*
+
+**Tickets**
+`.openticket` -> Get a DM from the bot to start generating a ticket
 
 **MISC**
 `.ongoing` -> Shows list of ongoing matches
