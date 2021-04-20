@@ -24,8 +24,8 @@ baseELO = 2000
 embedSideColor = 0x2425A2
 embedTitleColor = 0xF64C72
 footerText = "SAR6C | Use .h for help!"
-footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
-thumbnailURL = "https://cdn.discordapp.com/attachments/780358458993672202/780363791875440690/Untitled_design.gif"
+footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
 ticketTimeOut = 180

@@ -17,8 +17,8 @@ client.remove_command('help')
 
 #Global Variables
 footerText = "SAR6C | Use .h for help!"
-footerIcoURL = "https://cdn.discordapp.com/attachments/813715902028840971/822427952888676372/APAC_SOUTH_FOOTER.png"
-thumbnailURL = "https://media.discordapp.net/attachments/780358458993672202/785365594714275840/APAC_SOUTH_LOGO.png"
+footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 embedSideColor = 0x2425A2
 check_mark = '\u2705'
 
