@@ -3,7 +3,14 @@
 SAR6 Customs Bot or SAR6C is a Python based Discord bot to conduct Customs or "Pug" style competitions for the SA-R6 Community Discord Server. The bot registers users, performs matchmaking operations and keeps track of player scores and other match specific details.
 </td></tr><table>
 
-## README UNDER CONSTRUCTION
+## Features
+
+* Matchmaking System based on Elo Rating System
+* Lobby generation
+* Ticket generation and handling
+* Leaderboards
+* User Profiles
+* Automatic channel management
 <br>
 
 ## Current Commands
@@ -49,8 +56,8 @@ Let's say this is a given list of channels:
 A completely new user has to go through the following steps to get started:
 
  * **Registration**
-  1. Get the appropriate role (`R6C`) to start registering via external means (usually react-to-get-role via another bot, eg. Carl-bot or Dynobot)
-  2. Register in `#reg-info-lb` with `.register <Uplay ID>`
+   1. Get the appropriate role (`R6C`) to start registering via external means (usually react-to-get-role via another bot, eg. Carl-bot or Dynobot)
+   2. Register in `#reg-info-lb` with `.register <Uplay ID>`
 
 
 * **Joining Queue**
