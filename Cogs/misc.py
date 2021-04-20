@@ -8,7 +8,7 @@ class Example(commands.Cog):
 
 	@commands.Cog.listener()
 	async def on_ready(self):
-		print('Cog: "Misc" is ready.')
+		print('Cog: "misc" is ready.')
 
 	@commands.command(aliases = ["Hi", "ping"])
 	async def _hi(self, ctx):

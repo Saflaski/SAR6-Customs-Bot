@@ -9,7 +9,7 @@ import string
 import secrets
 import re
 from os import environ
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 #settingup MongoDB
 mongoCredURL = environ["MONGODB_PASS"]
@@ -28,7 +28,8 @@ footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/8328
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
-ticketTimeOut = 180
+ticketTimeOut = 180		#Timeout for auto cancelling a ticket due to AFK
+ticketAlert = 10		#Interval for refreshing ticket channel name to alert admins
 check_mark = '\u2705'
 
 #Discord Values
@@ -57,6 +58,7 @@ class TicketSystem(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		print('Cog: "ticketSystem" is ready.')
+		self.autoTicketCHUpdate.start()
 
 	#Channel Checks
 	def checkCorrectChannel(channelID = None, channelIDList = []):
@@ -257,10 +259,40 @@ class TicketSystem(commands.Cog):
 	@findTicket.error
 	async def findTicketError(self, ctx, error):
 		if isinstance(error, commands.CheckFailure):
-			print(error)
+			pass
 		elif isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send("Try `.findticket <match ID>` without <>")
 
+	@commands.has_any_role(adminRole)
+	@commands.command(name = "findopentickets")
+	@checkCorrectChannel(channelIDList = completeChannelList)
+	async def findOpenTickets(self, ctx):
+
+		#Find all tickets that are open
+		openTickets = ticketsCol.find({"Status": "Open"}, {"Id" : 1, "Auth": 1, "Datetime": 1, "Sub": 1}).sort([("Datetime", -1)])
+
+		descText = ""
+		ticketCount = 1
+		if openTickets is not None:
+			for ticket in openTickets:
+				ticketID = ticket['Id']
+				ticketAuth = ticket['Auth']
+				ticketSub = ticket['Sub']
+				if len(ticketSub) > 100:
+					ticketSub = ticketSub[:100] + "..."
+				descText += f"**{ticketCount}. ID: `{ticketID}` | Auth: `{ticketAuth}`**\nSubject: {ticketSub}\n\n"
+				ticketCount += 1
+
+		else:
+			descText = "No open tickets"
+
+		embed = discord.Embed(title = "Open Tickets", description = descText, color = embedSideColor)
+		await ctx.send(embed = embed)
+
+	@findOpenTickets.error
+	async def findOpenTicketsError(self, ctx, error):
+		if isinstance(error, commands.CheckFailure):
+			pass
 
 	@commands.has_any_role(adminRole)
 	@commands.command(name = "closeticket")
@@ -295,6 +327,21 @@ class TicketSystem(commands.Cog):
 			pass
 		elif isinstance(error, commands.MissingRequiredArgument):
 			await ctx.send("Try `.closeticket <match ID> <remarks>` without <>")
+
+	@tasks.loop(seconds = 10)
+	async def autoTicketCHUpdate(self):
+		#Count all open tickets
+
+		ticketNum = ticketsCol.find({"Status" : "Open"}).count()
+		if ticketNum != 0:
+			chNameString = f"🔴-{ticketNum}"
+		else:
+			chNameString = f"🟢"
+		ticketChannel = await self.client.fetch_channel(ticketsTC)
+		newChannelName = f"r6s-tickets-{chNameString}"
+		await ticketChannel.edit(name = newChannelName)
+
+
 
 
 def genTicketID():
