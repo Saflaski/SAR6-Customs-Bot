@@ -56,7 +56,7 @@ with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
 
-playersPerLobby = 4                                         #Cannot be odd number
+playersPerLobby = 10                                        #Cannot be odd number
 myGuildID = discServInfo["guildID"]                         #Used later to get myGuild
 myGuild = None                                              #Guild for which Bot is run
 voiceChannelCategoryID = discServInfo["vcCategoryID"]       #Used later to get voiceChannelCategory
