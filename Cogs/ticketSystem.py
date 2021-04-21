@@ -192,8 +192,10 @@ class TicketSystem(commands.Cog):
 						ticketDesc = ticketDesc.lower().capitalize()		#Purely cosmetic purposes					
 					currentStage += 1
 					#Send instructions for attachments
-					await playerObj.send("You can now add attachments or add links. To stop attaching or"
-										" if you want to skip this step, use `done`")
+					await playerObj.send("This is the last step where you can now add attachments or add links. "
+										"Once you're done attaching, OR if you want to skip this step, use `done`. "
+										"Your ticket will be generated once you use `done`. "
+										"Remember, you can always use `cancel` if you want to cancel this ticket entirely.")
 				else:
 					await playerObj.send("Inadequate description length, try again.")
 				
@@ -351,9 +353,9 @@ class TicketSystem(commands.Cog):
 
 def genTicketID():
     """
-    Generates unique alphanumeric token of length 8
-    Total possible permutations: (26 + 26 + 10) ^ 8
-    Therefore, collision probability is at 50% only at 62^4
+    Generates unique alphanumeric token of length 6
+    Total possible permutations: (26 + 26 + 10) ^ 6
+    Therefore, collision probability is at 50% only at 62^3
 
     """
     alphabet = string.ascii_letters + string.digits

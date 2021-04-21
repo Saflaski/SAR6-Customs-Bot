@@ -6,6 +6,8 @@
 `.removeplayer  <@discord ID>`: Removes player with given discord ID from Global Queue
 `.setELO <@discord ID> <target Elo>` :  Sets a player's Elo to target Elo
 `.closeticket <remarks -optional>` : Closes a ticket with an optional remark
+`.findticket <ticket ID>` : Finds a ticket with given ticket ID
+`.findopentickets` : Finds all open tickets
 
 `.QSTest <<match ID>>` : Diagnostics test that prints GVC, GQL, PIOM into console
 *Also prints match info from ONGOING_MATCHES.txt if match ID given*
