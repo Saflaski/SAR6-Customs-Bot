@@ -9,6 +9,10 @@
 `.findticket <ticket ID>` : Finds a ticket with given ticket ID
 `.findopentickets` : Finds all open tickets
 
+`.queueStop` : Stops the queue
+`.queueStart` : Starts the queue
+*By default, the queue is turned on when the bot is turned on at first*
+
 `.QSTest <<match ID>>` : Diagnostics test that prints GVC, GQL, PIOM into console
 *Also prints match info from ONGOING_MATCHES.txt if match ID given*
 

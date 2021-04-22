@@ -42,13 +42,8 @@ generatedLobby = {}
 #Players In Ongoing Matches
 PIOM = {}
 
-
 #Generated Voice Channels
 GVC = {}
-
-
-
-#Global Variables
 
 ##Discord Values##
 
@@ -86,6 +81,9 @@ MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "C
 K_VAL = 75                  #K value for awarding Elo change based on Expected Win Probability
 EXPO_VAL = 800              #400 value for calculating Expected Win Probability
 MIN_ELO_CHANGE = 10         #minmium ELO change possible
+
+#Message Links
+LOBBY_SETTINGS = "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184"
 
 
 """
@@ -958,7 +956,9 @@ class QueueSystem(commands.Cog):
                 for playerID in pList:
                     playerObj = await self.client.fetch_user(playerID)
                     if playerObj is not None:
-                        dmEmbed = discord.Embed(title = "Match Found - SAR6", description = f"Click [here]({msg_url}) to go straight to the match panel.", color = embedSideColor)
+                        dmEmbed = discord.Embed(title = "Match Found - SAR6", 
+                                                description = f"Click [here]({msg_url}) to go straight to the match panel.\nClick [here]({LOBBY_SETTINGS}) for Lobby Settings",
+                                                color = embedSideColor)
                         dmEmbed.set_thumbnail(url = thumbnailURL)
                         await playerObj.send(embed = dmEmbed)
                 print("Match Gen Cycle complete")
@@ -1098,6 +1098,20 @@ class QueueSystem(commands.Cog):
     @tasks.loop(seconds = 10)
     async def testLoop(self):
         await self.TESTTEST(MID = "someMID")
+
+    #Queue Start/Stop
+    @commands.command(name = "queueStop")
+    @commands.has_any_role(adminRole)
+    async def queueStop(self, ctx):
+        self.findPossibleLobby.stop()
+        print(f"{ctx.author} has stopped the queue.")
+    
+    @commands.command(name = "queueStart")
+    @commands.has_any_role(adminRole)
+    async def queueStart(self, ctx):
+        self.findPossibleLobby.start()
+        print(f"{ctx.author} has started the queue.")
+        
 
 
 
