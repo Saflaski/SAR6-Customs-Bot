@@ -22,7 +22,7 @@ footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/8328
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
-playersPerLobby = 4
+playersPerLobby = 10
 
 #Discord Values
 with open("ServerInfo.json") as jsonFile:
