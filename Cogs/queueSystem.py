@@ -63,7 +63,8 @@ helpRegInfoLbTC = discTextChannels["helpRegInfo"]
 queueTC = discTextChannels["queue"]
 matchGenTC = discTextChannels["matchGen"]
 postMatchTC = discTextChannels["postMatch"]
-completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC]
+adminTC = discTextChannels["admin"]
+completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC, adminTC]
 
 #Roles
 adminRole = "R6C Admin"
@@ -984,11 +985,12 @@ class QueueSystem(commands.Cog):
             mapString += f"{mapIndex} -> {someDict[mapIndex]}\n"
 
         #For when a map is banned/emoji is reacted to
-        async def genNewEmbed():
+        async def genNewEmbed(captBan):
             mapString = ""
             for mapIndex in someDict:
                 mapString += f"{mapIndex} -> {someDict[mapIndex]}\n"
             embedMessage.set_field_at(3, name = "Map Ban Phase:", value = mapString)
+            embedMessage.set_footer(text = f"Map banned by {captBan}", icon_url = footerIcoURL)
             await msg.edit(embed = embedMessage)
 
 
@@ -1005,8 +1007,8 @@ class QueueSystem(commands.Cog):
             reactionCond = str(myreaction.emoji) in someDict.keys()
             return (userCond and reactionCond)
 
-        #30 second timer for banning maps
-        timeout = 600
+        #420 second timer for banning maps
+        timeout = 420
         timeout_start = time.time()     #Starts keeping track of time
 
         lastMap = ""
@@ -1034,7 +1036,7 @@ class QueueSystem(commands.Cog):
 
                     #Edit the embed to reflect the new ban
                     del someDict[str(myreaction.emoji)]
-                    await genNewEmbed()
+                    await genNewEmbed(myuser)
                     await msg.clear_reaction(myreaction)
 
 

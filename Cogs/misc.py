@@ -12,7 +12,7 @@ class Example(commands.Cog):
 
 	@commands.command(aliases = ["Hi", "ping"])
 	async def _hi(self, ctx):
-		await ctx.send(f"HI! {(round(self.client.latency * 1000))}ms")
+		await ctx.send(f"Pong! {(round(self.client.latency * 1000))}ms")
 
 
 	"""
