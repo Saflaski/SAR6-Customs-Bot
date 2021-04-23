@@ -405,11 +405,9 @@ class QueueSystem(commands.Cog):
     async def cancelMatch(self, ctx = None, matchID = None):
         
         if matchID is None:
-            try:
-                raise commands.MissingRequiredArgument(matchID)
-            except Exception as e:
-                print(e)
-                return
+            await ctx.send("No match ID given")
+            return
+            
 
         global PIOM
         global GVC
