@@ -403,6 +403,14 @@ class QueueSystem(commands.Cog):
     @commands.has_any_role(adminRole)
     @commands.command(name = "cancelmatch")
     async def cancelMatch(self, ctx = None, matchID = None):
+        
+        if matchID is None:
+            try:
+                raise commands.MissingRequiredArgument(matchID)
+            except Exception as e:
+                print(e)
+                return
+
         global PIOM
         global GVC
         #Sets the Database score to C-C
