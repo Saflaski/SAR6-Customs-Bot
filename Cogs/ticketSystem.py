@@ -148,7 +148,7 @@ class TicketSystem(commands.Cog):
 			
 			#Upload a new ticket to MongoDB
 			try:
-				ticketsCol.insert_one({"Id": ticketID, "Auth": tickAuth, "AuthID": playerObj.id, "Sub": ticketSubject, 
+				ticketsCol.insert_one({"Id": ticketID, "Auth": tickAuth, "Sub": ticketSubject, 
 								"Desc": ticketDesc, "Evid": ticketEvidences, "Datetime" : ticDateTime,
 								"Status": "Open", "Remarks" : "None"})			#Remarks field is for remarks or comments by an admin
 
@@ -321,15 +321,6 @@ class TicketSystem(commands.Cog):
 			ticketEmbed = genTicketEmbed(ticID, ticAuth, ticSub, ticDesc,
 						ticEvid, ticDateTime, ticStat, ticRemarks)
 			await ctx.send(embed = ticketEmbed)
-
-			#For updating author about ticket
-			try:
-				authID = queryResult["AuthID"]								#If it's not a legacy ticket
-				authMember = self.client.fetch_user(authID)
-				await authMember.send(content = "Ticket Update", embed = ticketEmbed)
-
-			except KeyError:
-				await ctx.send("Could not send ticket update to the author")
 
 		else:
 			await ctx.send("Ticket not found")
