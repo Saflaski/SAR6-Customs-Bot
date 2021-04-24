@@ -29,6 +29,7 @@ with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
 infoRegTC = discServInfo["TextChannels"]["helpRegInfo"]
+quickStartTC = discServInfo["TextChannels"]["quickstart"]
 
 #Roles
 adminRole = "R6C Admin"
@@ -84,8 +85,17 @@ class Users(commands.Cog):
 				x = dbCol.insert_one(tempDict)
 				await ctx.send(f"\N{White Heavy Check Mark} {author} succesfully registered!")
 				print(f" {author} succesfully registered. ID: {x.inserted_id}")
+
+
+				#quickStartCh = self.client.fetch_channel(quickStartTC)
+				dmEmbed = discord.Embed(title = "Welcome to SAR6 Customs", 
+                                                description = f"Click <#{quickStartTC}> to know the commands and how to get started",
+                                                color = embedSideColor)
+				dmEmbed.set_thumbnail(url = thumbnailURL)
+				await ctx.author.send(embed = dmEmbed)
+
 			except:
-				await ctx.send("Error: Contact admin")
+				await ctx.send("Error 103: Contact Admin")
 				print(f"Failed to register user: {author}")
 
 	@registerUser.error
