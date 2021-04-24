@@ -199,8 +199,7 @@ class Leaderboard(commands.Cog):
 			#Send Info
 			with open("commands.txt") as f:
 				commandsTextFile = f.read()
-			infoEmbed = discord.Embed(title = "Help", color = embedSideColor)
-			infoEmbed.add_field(name = f"Commands:", value = commandsTextFile)
+			infoEmbed = discord.Embed(title = "Help Commands", description = commandsTextFile, color = embedSideColor)
 			infoEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 			infoEmbed.set_thumbnail(url = thumbnailURL)
 			await autoLBInfoChannel.send(embed = infoEmbed)
