@@ -325,7 +325,7 @@ class TicketSystem(commands.Cog):
 			#For updating author about ticket
 			try:
 				authID = queryResult["AuthID"]								#If it's not a legacy ticket
-				authMember = self.client.fetch_user(authID)
+				authMember = await self.client.fetch_user(authID)
 				await authMember.send(content = "Ticket Update", embed = ticketEmbed)
 
 			except KeyError:
