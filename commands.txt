@@ -9,7 +9,7 @@
 **Queueing:**
 `.joinq` -> Join global queue
 `.leaveq` -> Leave global queue
-`.showq` -> Show how many are in queue, and if user is in queue
+`.showq` -> Show queue
 
 **Post-match**
 `.result <score>` -> Upload score for a match you're in

@@ -1,6 +1,5 @@
 **Admin commands**
 `.ongoing` -> Show ongoing matches
-`.globalq` -> Show list of players in global queue
 `.forceresult <match ID> <score>` -> Closes a match, changes Elo, deletes VC
 `.cancelmatch <match ID>` -> Cancels a match, deletes VC
 `.freeglobal` -> Clears Global Queue

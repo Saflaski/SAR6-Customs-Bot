@@ -184,10 +184,10 @@ class QueueSystem(commands.Cog):
             pass
 
 
-    @commands.has_any_role(adminRole)
-    @commands.command(aliases = ["globalqueue", "showglobalq", "globalq"])
+    @commands.has_any_role(userRole, adminRole)
+    @commands.command(aliases = ["showq", "queue"])
     @checkCorrectChannel(channelIDList = completeChannelList)
-    async def globalQueue(self, ctx):
+    async def showQueue(self, ctx):
         global GQL
         tempGQL = GQL.copy()    #copies current state of GQL
         queryList = []          #List for MongoDB Query
@@ -215,31 +215,6 @@ class QueueSystem(commands.Cog):
             queueEmbed = discord.Embed(color = embedSideColor)
             queueEmbed.add_field(name = "Players in Queue: 0", value = "** **")
             await ctx.send(embed = queueEmbed)
-
-    @globalQueue.error
-    async def globalQueue_error(self, ctx, error):
-        if isinstance(error, commands.MissingAnyRole):
-            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
-        elif isinstance(error, commands.NoPrivateMessage):
-            pass
-    
-    @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["showq", "showqueue", "sq"])
-    @checkCorrectChannel(channelIDList=completeChannelList)
-    async def showQueue(self, ctx):
-        
-        numOfPlayers = len(GQL)
-        playerInGQL = "You are not in Queue"
-
-        if ctx.author.id in GQL:
-            playerInGQL = "You are in Queue"
-
-        queueEmbed = discord.Embed(title = f"Global Queue ({numOfPlayers}/{playersPerLobby})",  
-                                description = playerInGQL, color = embedSideColor)
-
-        await ctx.send(embed = queueEmbed)
-
-
 
     @showQueue.error
     async def showQueue_error(self, ctx, error):
