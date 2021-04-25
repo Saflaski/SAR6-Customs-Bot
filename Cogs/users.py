@@ -28,11 +28,13 @@ playersPerLobby = 10
 with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
-infoRegTC = discServInfo["TextChannels"]["helpRegInfo"]
-quickStartTC = discServInfo["TextChannels"]["quickstart"]
-adminTC = discServInfo["TextChannels"]["admin"]
-ticketsTC = discServInfo["TextChannels"]["tickets"]
-completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC]
+discTextChannels = discServInfo["TextChannels"]
+infoRegTC = discTextChannels["helpRegInfo"]
+quickStartTC = discTextChannels["quickstart"]
+queueTC = discTextChannels["queue"]
+adminTC = discTextChannels["admin"]
+ticketsTC = discTextChannels["tickets"]
+completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC, queueTC]
 #Roles
 adminRole = "R6C Admin"
 userRole = "R6C"
