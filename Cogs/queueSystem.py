@@ -29,6 +29,7 @@ matchesCol = db["matches_col"]
 embedSideColor = 0x2425A2
 embedTitleColor = 0xF64C72
 footerText = "SAR6C | Use .h for help!"
+JSLfooterText = "Use .joinq to join, .leaveq to leave, .info for info"
 thumbnailURL= "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
@@ -46,6 +47,8 @@ PIOM = {}
 GVC = {}
 
 ##Discord Values##
+
+lastLobbyUpdateMsg = object
 
 with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
@@ -162,8 +165,8 @@ class QueueSystem(commands.Cog):
             return None
 
         elif discID in GQL:
-            queueEmbed = discord.Embed(description = f"You are already in the  Global Queue", color = embedSideColor)
-            await ctx.send(embed = queueEmbed)
+            queueEmbed = discord.Embed(description = f"You are already in queue", color = embedSideColor)
+            await ctx.author.send(embed = queueEmbed)
             return None
 
         for match in PIOM:
@@ -174,7 +177,17 @@ class QueueSystem(commands.Cog):
 
         GQL.append(discID)
         print(f"{member} has joined the Global Queue")
-        await ctx.message.add_reaction(check_mark)
+        
+        #Send DM
+        dmEmbed = discord.Embed(description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", colour = embedSideColor)
+        await ctx.author.send(embed = dmEmbed)
+
+        #Send public message
+        publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
+        publicEmbed.set_footer(text = JSLfooterText)
+        await ctx.send(embed = publicEmbed)
+        
+        await ctx.message.delete(delay = 1.5)
 
     @joinQueue.error
     async def joinQueue_error(self, ctx, error):
@@ -227,17 +240,22 @@ class QueueSystem(commands.Cog):
     @commands.command(aliases = ["showq", "showqueue", "sq"])
     @checkCorrectChannel(channelIDList=completeChannelList)
     async def showQueue(self, ctx):
-        
+
+
         numOfPlayers = len(GQL)
+        """
         playerInGQL = "You are not in Queue"
 
         if ctx.author.id in GQL:
             playerInGQL = "You are in Queue"
+        """
+        
+        queueEmbed = discord.Embed(title = f"Current queue: ({numOfPlayers}/{playersPerLobby})", color = embedSideColor)
 
-        queueEmbed = discord.Embed(title = f"Global Queue ({numOfPlayers}/{playersPerLobby})",  
-                                description = playerInGQL, color = embedSideColor)
+        await ctx.send(embed = queueEmbed)        #Update the last lobby update message object
 
-        await ctx.send(embed = queueEmbed)
+        #await lastLobbyUpdateMsg.delete()
+        #lastLobbyUpdateMsg = await ctx.send(f"Latest queue: {len(GQL)}/{playersPerLobby}")      #Update the last lobby update message object
 
 
 
@@ -264,8 +282,18 @@ class QueueSystem(commands.Cog):
         if member.id in GQL:
             GQL.remove(member.id)
             #queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
-            await ctx.message.add_reaction(check_mark)
             print(f"{member} has left the Global Queue")
+            
+            #Send DM
+            dmEmbed = discord.Embed(description = f"You were removed from queue\n{len(GQL)}/{playersPerLobby}", colour = embedSideColor)
+            await ctx.author.send(embed = dmEmbed)
+
+            #Send public message
+            publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
+            publicEmbed.set_footer(text = JSLfooterText)
+            await ctx.send(embed = publicEmbed)
+
+            await ctx.message.delete(delay = 1.5)           #Delete auth message
 
         else:
             queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
