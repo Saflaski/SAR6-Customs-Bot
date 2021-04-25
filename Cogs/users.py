@@ -30,7 +30,9 @@ with open("ServerInfo.json") as jsonFile:
 
 infoRegTC = discServInfo["TextChannels"]["helpRegInfo"]
 quickStartTC = discServInfo["TextChannels"]["quickstart"]
-
+adminTC = discServInfo["TextChannels"]["admin"]
+ticketsTC = discServInfo["TextChannels"]["tickets"]
+completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC]
 #Roles
 adminRole = "R6C Admin"
 userRole = "R6C"
@@ -109,7 +111,7 @@ class Users(commands.Cog):
 
 	@commands.command(name = "info")
 	@commands.guild_only()
-	@checkCorrectChannel(channelID = infoRegTC)
+	@checkCorrectChannel(channelIDList = completeChannelList)
 	async def getUserInfo(self, ctx, givenID = ""):
 
 		print(f"{ctx.author} used info")
@@ -153,6 +155,9 @@ class Users(commands.Cog):
 		userJoinDate = mydoc["dateRegistered"]
 		userJoinDate = userJoinDate.date()
 
+		#Get user rank
+		globalRank = getUserRank(userDiscID)
+
 		#Get match history info
 		matchHistoryDoc = matchesCol.find({"matchList" : userDiscID}).sort([("_id", -1)]).limit(10)
 
@@ -192,6 +197,7 @@ class Users(commands.Cog):
 		myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = True)
 		myEmbed.add_field(name = "ELO: ", value = userELO, inline = True)
 		myEmbed.add_field(name = "Join Date:", value = userJoinDate, inline = False)
+		myEmbed.add_field(name = "Rank: ", value = globalRank, inline = False)
 		myEmbed.add_field(name = "Win-Loss (last 10):", value = WLString, inline = False)
 		myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 		await ctx.send(embed = myEmbed)
@@ -267,6 +273,47 @@ class Users(commands.Cog):
 		myEmbed.add_field(name = "Requested Uplay ID:", value = newUplayID, inline = False)
 		await ctx.send(embed = myEmbed)
 
+def getUserRank(discID):
+	rankCursor = dbCol.aggregate([
+    {
+        "$project": {
+        "_id": 1,
+        "discID": "$discID",
+        "ELO": "$ELO"
+        }
+    }, {
+        "$sort": {
+            "ELO": -1
+        }
+    }, {
+        "$group" : {
+            "_id" : {},
+            "arr": {
+                "$push": {
+                    "discID": "$discID",
+                    "ELO": "$ELO"
+                }
+            }
+        }
+    }, {
+        "$unwind": {
+            "path" : "$arr",
+            "includeArrayIndex": 'globalRank'
+        }
+    },{
+        "$sort" : {
+            'arr.discID': 1,
+            'arr.ELO': -1,
+        }
+    }, {
+        '$match': { 'arr.discID': discID}
+    }
+	])
+
+	cursorObjects = list(rankCursor)
+	globalRank = cursorObjects[0]['globalRank']
+
+	return globalRank
 
 def setup(client):
 	client.add_cog(Users(client))
