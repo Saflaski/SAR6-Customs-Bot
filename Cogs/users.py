@@ -311,7 +311,7 @@ def getUserRank(discID):
 	])
 
 	cursorObjects = list(rankCursor)
-	globalRank = cursorObjects[0]['globalRank']
+	globalRank = cursorObjects[0]['globalRank'] + 1
 
 	return globalRank
 
