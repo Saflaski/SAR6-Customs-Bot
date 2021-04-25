@@ -672,7 +672,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(name = "result")
+    @commands.command(aliases = ["result", "results"])
     @checkCorrectChannel(channelID = postMatchTC)
     async def addManualResult(self, ctx, score):
         global PIOM

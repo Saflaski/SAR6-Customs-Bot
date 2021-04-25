@@ -35,7 +35,7 @@ with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
 discTextChannels = discServInfo["TextChannels"]
-leaderBoardTC = discTextChannels["helpRegInfo"]
+leaderBoardTC = discTextChannels["fullrankings"]
 autoLeaderboardTC = discTextChannels["autoLB"]
 autoLeaderboardMessage = None
 autoLBInfoChannel = None
@@ -200,7 +200,7 @@ class Leaderboard(commands.Cog):
 			with open("commands.txt") as f:
 				commandsTextFile = f.read()
 			infoEmbed = discord.Embed(title = "Help Commands", description = commandsTextFile, color = embedSideColor)
-			infoEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
+			infoEmbed.set_footer(text = "Current Commands", icon_url = footerIcoURL)
 			infoEmbed.set_thumbnail(url = thumbnailURL)
 			await autoLBInfoChannel.send(embed = infoEmbed)
 
@@ -217,7 +217,7 @@ class Leaderboard(commands.Cog):
 
 def getAutoLBEmbed():
 
-	mydoc = dbCol.find().limit(10).sort("ELO",-1)
+	mydoc = dbCol.find().limit(20).sort("ELO",-1)
 
 	embedContentString = ""			#Body of Embed Content
 	tempCounter = 0					#tempCounter used to assign rank to each user
@@ -235,8 +235,7 @@ def getAutoLBEmbed():
 
 
 	#Generate Embed Object
-	myEmbed = discord.Embed(title = "Auto Leaderboard", color = embedSideColor)
-	myEmbed.add_field(name = f"Top 10 list:", value = embedContentString)
+	myEmbed = discord.Embed(title = "Auto Leaderboard - Top 20", color = embedSideColor, description = embedContentString)
 	myEmbed.set_footer(text = f"Refreshes every {autoLBrefresh} seconds", icon_url = footerIcoURL)
 	myEmbed.set_thumbnail(url = thumbnailURL)
 
