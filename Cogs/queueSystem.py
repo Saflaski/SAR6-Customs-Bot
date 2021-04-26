@@ -26,7 +26,7 @@ dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
 #Global Variables
-embedSideColor = 0x2425A2
+embedSideColor = 0xFAAF41
 embedTitleColor = 0xF64C72
 footerText = "SAR6C | Use .h for help!"
 JSLfooterText = "Use .joinq to join | .leaveq to leave | .info for info"
@@ -181,7 +181,8 @@ class QueueSystem(commands.Cog):
         print(f"{member} has joined the Global Queue")
         
         #Send DM
-        dmEmbed = discord.Embed(description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", colour = embedSideColor)
+        dmEmbed = discord.Embed(title = "Player Joined", description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", 
+                            colour = embedSideColor)
         await ctx.author.send(embed = dmEmbed)
 
         #Send public message

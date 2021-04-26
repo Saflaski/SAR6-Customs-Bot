@@ -19,7 +19,7 @@ baseELO = 2000
 autoLBrefresh = 20
 
 #For embed messages
-embedSideColor = 0x2425A2
+embedSideColor = 0xFAAF41
 footerText = "SAR6C Leaderboards - Only author can flip pages | Use .h for help!"
 thumbnailURL= "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
@@ -92,7 +92,7 @@ class Leaderboard(commands.Cog):
 			currentPage = currentSkip//limitPerPage + 1			#Finds current page number based on how many skipped yet
 			totalPages = math.ceil(maxLimit/limitPerPage)		#Finds total pages based on how many docs there are
 
-			mydoc = dbCol.find().skip(currentSkip).limit(limitPerPage).sort("ELO",-1)
+			mydoc = dbCol.find().skip(currentSkip).limit(limitPerPage).sort([("ELO", pymongo.DESCENDING), ("discID", pymongo.ASCENDING)])
 
 			embedContentString = ""			#Body of Embed Content
 			tempCounter = 0					#tempCounter used to assign rank to each user

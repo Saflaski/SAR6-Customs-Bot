@@ -21,7 +21,7 @@ ticketsCol = db["tickets_col"]
 
 #Global Variables
 baseELO = 2000
-embedSideColor = 0x2425A2
+embedSideColor = 0xFAAF41
 embedTitleColor = 0xF64C72
 footerText = "SAR6C | Use .h for help!"
 footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"

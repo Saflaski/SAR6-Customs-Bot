@@ -19,7 +19,7 @@ client.remove_command('help')
 footerText = "SAR6C | Use .h for help!"
 footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
-embedSideColor = 0x2425A2
+embedSideColor = 0xFAAF41
 check_mark = '\u2705'
 
 #logging errors
