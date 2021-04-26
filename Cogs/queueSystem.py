@@ -29,7 +29,7 @@ matchesCol = db["matches_col"]
 embedSideColor = 0x2425A2
 embedTitleColor = 0xF64C72
 footerText = "SAR6C | Use .h for help!"
-JSLfooterText = "Use .joinq to join, .leaveq to leave, .info for info"
+JSLfooterText = "Use .joinq to join | .leaveq to leave | .info for info"
 thumbnailURL= "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
@@ -166,7 +166,9 @@ class QueueSystem(commands.Cog):
 
         elif discID in GQL:
             queueEmbed = discord.Embed(description = f"You are already in queue", color = embedSideColor)
-            await ctx.author.send(embed = queueEmbed)
+            alrQueueMsg = await ctx.send(content = f"<@{discID}>", embed = queueEmbed)
+            await alrQueueMsg.delete(delay = 2)
+            await ctx.message.delete(delay = 2)
             return None
 
         for match in PIOM:
@@ -184,7 +186,7 @@ class QueueSystem(commands.Cog):
 
         #Send public message
         publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
-        publicEmbed.set_footer(text = JSLfooterText)
+        publicEmbed.set_footer(text = JSLfooterText, icon_url = footerIcoURL)
         await ctx.send(embed = publicEmbed)
         
         await ctx.message.delete(delay = 1.5)
@@ -269,7 +271,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["leaveq","leave"])
+    @commands.command(aliases = ["leaveq","leave", "nahikhelnamujhe"])
     @checkCorrectChannel(channelID = queueTC)
     async def leaveQueue(self, ctx):
 
@@ -278,7 +280,6 @@ class QueueSystem(commands.Cog):
         global GQL
 
         #Removes user to the queue
-        queueEmbed = discord.Embed(color = embedSideColor)
         if member.id in GQL:
             GQL.remove(member.id)
             #queueEmbed.add_field(name = "Removed from Global Queue", value = "** **")
@@ -289,15 +290,18 @@ class QueueSystem(commands.Cog):
             await ctx.author.send(embed = dmEmbed)
 
             #Send public message
-            publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
-            publicEmbed.set_footer(text = JSLfooterText)
+            publicEmbed = discord.Embed(title = "Player Left", description = f"Current queue: {len(GQL)}/{playersPerLobby}", 
+                        colour = embedSideColor)
+            publicEmbed.set_footer(text = JSLfooterText, icon_url = footerIcoURL)
             await ctx.send(embed = publicEmbed)
 
             await ctx.message.delete(delay = 1.5)           #Delete auth message
 
         else:
-            queueEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
-            await ctx.send(embed = queueEmbed)
+            publicEmbed = discord.Embed(color = embedSideColor)
+            publicEmbed.add_field(name = "You weren't in Global Queue", value = "** **")
+            alrLeaveMsg = await ctx.send(content = f"<@{member.id}>", embed = publicEmbed)
+
 
     @leaveQueue.error
     async def leaveQueue_error(self, ctx, error):
@@ -422,10 +426,6 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
             pass
-
-
-
-
 
 
     @commands.has_any_role(adminRole)
@@ -1327,11 +1327,6 @@ def ongMatchFileOps(mode, MID, givenDict = None):
         return None
         print("FATAL ERROR: INVALID MODE IN ongMatchFileOps ")
 
-
-
-
-
-
 def checkCorrectScore(score):
     myRegex = re.compile("^(\d)-(\d)$")
     rawList = myRegex.findall(score)
@@ -1433,53 +1428,71 @@ def getBalancedTeams(lobbyDic):
     teamA = []
     teamB = []
 
-
-
     playersPerSide = playersPerLobby // 2
 
-    averageScore = 0
     playerELOList = []
     for playerID in lobbyDic:
-    	averageScore += lobbyDic[playerID]         #Summation of scores, will get averaged later
     	playerELOList.append(lobbyDic[playerID])   #Appending ELOs of all players to a list
 
 
-
-    averageScore = averageScore//playersPerLobby    #Using mean average to calculate lobby's average ELO
-
+    #Find possibly team combos using sum differences
     """
-    Version 1.0 of balancing works by getting all combinations of 10 players' ELO
-    on one side (5 spots). Therefore, there will be a total of 10C5 or 10!/(5!5!)
-    or 252 combinations then finding the combination whose average mean ELO is
-    closest to the lobby's average ELO.
+    First layer of balancing:
+        Find possible team combos whose sum of Elos is the closest to 
+        the sum of the Elos of the lobby divided by 2.
+        This is done by finding 10C5 possible combos of teams from
+        10 players into 5 spots in a team. Then sum of Elos of each is compared
+        to sum of Elos of the lobby divided by 2.
 
-    After assigning ELOs to lists TeamA and TeamB, it generates dictionaries where
-    it matches players with ELOs and returns them
+        Usually more than one such combo would be found and thus we need a second 
+        layer of balancing. 
 
+    Second layer of balancing:
+        From the list of possible team combos that arise out of the above layer, 
+        the second layer would compare the median average of each possible team combo,
+        then compare it to the median average of the entire lobby.
+
+        The team combo with the smallest such median average would then be returned.
     """
-    #Getting all 252 combinations
-    comb = list(combinations(playerELOList,playersPerSide))
 
-    #diff from Lobby average for first combination (only used for initial run of loop)
-    diffFromAVG = abs(averageScore - sum(comb[0])//playersPerSide)
-    teamA = []
+    sumScore = sum(playerELOList)//2
+    possibleCombs = list(combinations(playerELOList,playersPerSide))
+    teamA = list(possibleCombs[0]).copy()
 
-    teamA = list(comb[0]).copy()
-    for i in comb:
-        try:
-            if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
-                #If diff higher than combination i's average, then assign to Team A
-                teamA = list(i).copy()
-                #New Diff from AVG
-                diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
-        except Exception as e:
-            print(e)
+    diffFromSum = abs(sumScore - sum(teamA))
+    foundCombos = []
+    for possibleTeam in possibleCombs:
+        if diffFromSum >= abs(sumScore - sum(possibleTeam)):
+            teamA = list(possibleTeam).copy()
+            diffFromSum = abs(sumScore - sum(possibleTeam))
+            if diffFromSum > abs(sumScore - sum(possibleTeam)):
+                foundCombos.clear()
+                foundCombos.append(possibleTeam)
+            else: 
+                foundCombos.append(possibleTeam)
+
+    #Sort through Medians now
+
+    medianLobby = statistics.median(playerELOList)
+    bestCombo = foundCombos[0]
+
+    if len(foundCombos) > 1:
+        lowestDiff = abs(statistics.median(foundCombos[0]) - medianLobby)
+        for combo in foundCombos:
+            diffFromMedianAvg = abs(statistics.median(combo) - medianLobby)
+
+            if lowestDiff > diffFromMedianAvg:
+                lowestDiff = diffFromMedianAvg
+                bestCombo = list(combo).copy()
+                
+        teamA = list(bestCombo).copy()
+    else:
+        teamA = list(foundCombos[0])
 
     #Assign ELOs not in TeamA to TeamB
     teamB = playerELOList.copy()
     for i in teamA:
-    	teamB.remove(i)
-
+        teamB.remove(i)
 
     #Prepare dictionaries for returning
     dicTeamA = {}
