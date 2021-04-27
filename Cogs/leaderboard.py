@@ -66,12 +66,18 @@ class Leaderboard(commands.Cog):
 
 		print(f"{ctx.author} used lb")
 
-		aliveTime = 60					#How long to enable page switching (seconds)
+		aliveTime = 150					#How long to enable page switching (seconds)
 
 		currentSkip = 0					#No. of documents currently skipped
 		limitPerPage = 10				#No. of documents to show per page
 
-		#mydoc = dbCol.find().skip(currentSkip).limit(limitPerPage).sort("ELO",1)
+		#Find which page to display first based on user's rank
+		try:
+			authRank = getUserRank(ctx.author.id)
+			currentSkip = (authRank//limitPerPage ) * limitPerPage
+		except Exception as e:
+			print(e)
+			print(currentSkip)
 
 		maxLimit = dbCol.count_documents({})		#Total no. of users or documents
 		print(f"No. of documents: {maxLimit}")
@@ -106,7 +112,10 @@ class Leaderboard(commands.Cog):
 					uRank = str(currentSkip + tempCounter) + '.'
 
 				#To query each doc and append details to the body of Embed Object
-				embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+				if x["discID"] == ctx.author.id:
+					embedContentString += f"**{uRank.ljust(4)}** **__{x['discName']}__** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+				else:
+					embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
 
 
 			#Generate Embed Object
@@ -129,8 +138,7 @@ class Leaderboard(commands.Cog):
 
 		#Page flipping:
 
-
-		timeout = 30					#Waits for 30 seconds then removes page flipping function
+		timeout = aliveTime
 		timeout_start = time.time()		#Starts keeping track of time
 
 		def check(reaction, user):		#Checks if author (and not anybody else) is reacting with the correct arrows
@@ -140,7 +148,7 @@ class Leaderboard(commands.Cog):
 
 			try:
 				#Watches out for author to add the proper reaction
-				reaction, user = await self.client.wait_for('reaction_add', timeout = 60.0, check = check)
+				reaction, user = await self.client.wait_for('reaction_add', timeout = aliveTime, check = check)
 
 			except asyncio.TimeoutError:
 				pass					#I forgot why I added timeout above and asyncio.TimeoutError here
@@ -240,6 +248,49 @@ def getAutoLBEmbed():
 	myEmbed.set_thumbnail(url = thumbnailURL)
 
 	return myEmbed
+
+def getUserRank(discID):					#Used to find .lb caller's rank only
+	rankCursor = dbCol.aggregate([
+    {
+        "$project": {
+        "_id": 1,
+        "discID": "$discID",
+        "ELO": "$ELO"
+        }
+    }, {
+        "$sort": {
+            "ELO": pymongo.DESCENDING,
+			"discID": pymongo.ASCENDING
+        }
+    }, {
+        "$group" : {
+            "_id" : {},
+            "arr": {
+                "$push": {
+                    "discID": "$discID",
+                    "ELO": "$ELO"
+                }
+            }
+        }
+    }, {
+        "$unwind": {
+            "path" : "$arr",
+            "includeArrayIndex": 'globalRank'
+        }
+    },{
+        "$sort" : {
+            'arr.discID': pymongo.ASCENDING,
+            'arr.ELO': pymongo.DESCENDING,
+        }
+    }, {
+        '$match': { 'arr.discID': discID}
+    }
+	])
+
+	cursorObjects = list(rankCursor)
+	globalRank = cursorObjects[0]['globalRank'] + 1
+
+	return globalRank
 
 def setup(client):
 	client.add_cog(Leaderboard(client))
