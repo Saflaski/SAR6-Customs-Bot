@@ -285,7 +285,8 @@ def getUserRank(discID):
         }
     }, {
         "$sort": {
-            "ELO": -1
+            "ELO": pymongo.DESCENDING,
+			"discID": pymongo.ASCENDING
         }
     }, {
         "$group" : {
@@ -304,8 +305,8 @@ def getUserRank(discID):
         }
     },{
         "$sort" : {
-            'arr.discID': 1,
-            'arr.ELO': -1,
+            'arr.discID': pymongo.ASCENDING,
+            'arr.ELO': pymongo.DESCENDING,
         }
     }, {
         '$match': { 'arr.discID': discID}

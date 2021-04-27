@@ -217,7 +217,7 @@ class Leaderboard(commands.Cog):
 
 def getAutoLBEmbed():
 
-	mydoc = dbCol.find().limit(20).sort("ELO",-1)
+	mydoc = dbCol.find().limit(20).sort([("ELO", pymongo.DESCENDING), ("discID", pymongo.ASCENDING)])
 
 	embedContentString = ""			#Body of Embed Content
 	tempCounter = 0					#tempCounter used to assign rank to each user
