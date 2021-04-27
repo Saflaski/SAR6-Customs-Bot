@@ -72,12 +72,10 @@ class Leaderboard(commands.Cog):
 		limitPerPage = 10				#No. of documents to show per page
 
 		#Find which page to display first based on user's rank
-		try:
-			authRank = getUserRank(ctx.author.id)
-			currentSkip = (authRank//limitPerPage ) * limitPerPage
-		except Exception as e:
-			print(e)
-			print(currentSkip)
+
+		authRank = getUserRank(ctx.author.id)
+		currentSkip = (authRank//limitPerPage ) * limitPerPage			#Find how many docs to skip which is a multiple of limitPerPage
+
 
 		maxLimit = dbCol.count_documents({})		#Total no. of users or documents
 		print(f"No. of documents: {maxLimit}")
@@ -112,7 +110,7 @@ class Leaderboard(commands.Cog):
 					uRank = str(currentSkip + tempCounter) + '.'
 
 				#To query each doc and append details to the body of Embed Object
-				if x["discID"] == ctx.author.id:
+				if x["discID"] == ctx.author.id:			#Make it easier to spot the user
 					embedContentString += f"**{uRank.ljust(4)}** **__{x['discName']}__** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
 				else:
 					embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
