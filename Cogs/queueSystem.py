@@ -89,6 +89,12 @@ MIN_ELO_CHANGE = 10         #minmium ELO change possible
 #Message Links
 LOBBY_SETTINGS = "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184"
 
+#Tempstats
+STAT_JQ = 0                 #players who joined queue
+STAT_LQ = 0                 #players who left queue
+STAT_MG = 0                 #Matches generated
+
+
 
 """
 Queue system v1.0
@@ -151,6 +157,7 @@ class QueueSystem(commands.Cog):
     async def joinQueue(self, ctx):
 
         global GQL
+        global STAT_JQ
 
         #Adds user to the queue
         member = ctx.author
@@ -179,6 +186,7 @@ class QueueSystem(commands.Cog):
 
         GQL.append(discID)
         print(f"{member} has joined the Global Queue")
+        STAT_JQ += 1
         
         #Send DM
         dmEmbed = discord.Embed(title = "Player Joined", description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", 
@@ -279,6 +287,7 @@ class QueueSystem(commands.Cog):
         member = ctx.author
 
         global GQL
+        global STAT_LQ
 
         #Removes user to the queue
         if member.id in GQL:
@@ -297,6 +306,8 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = publicEmbed)
 
             await ctx.message.delete(delay = 1.5)           #Delete auth message
+
+            STAT_LQ += 1
 
         else:
             publicEmbed = discord.Embed(color = embedSideColor)
@@ -1155,6 +1166,15 @@ class QueueSystem(commands.Cog):
         print(ctx)
         print(MID)
 
+    @commands.has_any_role(adminRole)
+    @commands.command(name = "stat_jlm")
+    async def stat_JLM(self, ctx):
+        msgString = (f"Players who joined the queue: {STAT_JQ}\n"
+                    f"Players who left the queue: {STAT_LQ}\n"
+                    f"Matches generated: {STAT_MG}")
+
+        await ctx.send(msgString)
+
     #### TESTING PURPOSES ####
 
     @tasks.loop(seconds = 10)
@@ -1518,6 +1538,8 @@ def getBalancedTeams(lobbyDic):
 
 def generateTeams(matchID, pList):
 
+    global STAT_MG
+
     #pList = [###############, ############, ##############, #####################, ##################, ###################]
 
     queryList = []          #List for MongoDB Query
@@ -1588,6 +1610,8 @@ def generateTeams(matchID, pList):
 
     matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList})
     print(f"Uploaded Generated Match: {matchID}")
+
+    STAT_MG += 1
 
     return (embeddedObject, teamAVC, teamBVC, captainTeamA, captainTeamB)
     #return (embeddedObject, teamAVC, teamBVC)
