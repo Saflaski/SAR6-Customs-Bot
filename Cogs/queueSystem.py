@@ -1458,6 +1458,10 @@ def getBalancedTeams(lobbyDic):
 
     #Find possibly team combos using sum differences
     """
+    
+    TEMPORARILY DE-ACTIVATED IN FAVOUR OF LEGACY SYSTEM
+
+
     First layer of balancing:
         Find possible team combos whose sum of Elos is the closest to 
         the sum of the Elos of the lobby divided by 2.
@@ -1474,8 +1478,12 @@ def getBalancedTeams(lobbyDic):
         then compare it to the median average of the entire lobby.
 
         The team combo with the smallest such median average would then be returned.
-    """
+    
 
+    
+
+    """
+    """
     sumScore = sum(playerELOList)//2
     possibleCombs = list(combinations(playerELOList,playersPerSide))
     teamA = list(possibleCombs[0]).copy()
@@ -1509,6 +1517,24 @@ def getBalancedTeams(lobbyDic):
         teamA = list(bestCombo).copy()
     else:
         teamA = list(foundCombos[0])
+    """
+
+    comb = list(combinations(playerELOList,playersPerSide))
+
+    #diff from Lobby average for first combination (only used for initial run of loop)
+    diffFromAVG = abs(averageScore - sum(comb[0])//playersPerSide)
+    teamA = []
+
+    teamA = list(comb[0]).copy()
+    for i in comb:
+        try:
+            if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
+                #If diff higher than combination i's average, then assign to Team A
+                teamA = list(i).copy()
+                #New Diff from AVG
+                diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
+        except Exception as e:
+            print(e)
 
     #Assign ELOs not in TeamA to TeamB
     teamB = playerELOList.copy()
