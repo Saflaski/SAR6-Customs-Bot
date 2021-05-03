@@ -93,8 +93,8 @@ LOBBY_SETTINGS = "https://discord.com/channels/302692676099112960/82505918659271
 STAT_JQ = 0                 #players who joined queue
 STAT_LQ = 0                 #players who left queue
 STAT_MG = 0                 #Matches generated
-
-
+STAT_UJQ = set()            #Unique users who joined queue
+STAT_ULQ = set()            #Unique users who left queue
 
 """
 Queue system v1.0
@@ -158,6 +158,7 @@ class QueueSystem(commands.Cog):
 
         global GQL
         global STAT_JQ
+        global STAT_UJQ
 
         #Adds user to the queue
         member = ctx.author
@@ -187,6 +188,7 @@ class QueueSystem(commands.Cog):
         GQL.append(discID)
         print(f"{member} has joined the Global Queue")
         STAT_JQ += 1
+        STAT_UJQ.add(discID)
         
         #Send DM
         dmEmbed = discord.Embed(title = "Player Joined", description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", 
@@ -288,6 +290,7 @@ class QueueSystem(commands.Cog):
 
         global GQL
         global STAT_LQ
+        global STAT_ULQ
 
         #Removes user to the queue
         if member.id in GQL:
@@ -308,6 +311,7 @@ class QueueSystem(commands.Cog):
             await ctx.message.delete(delay = 1.5)           #Delete auth message
 
             STAT_LQ += 1
+            STAT_ULQ.add(member.id)
 
         else:
             publicEmbed = discord.Embed(color = embedSideColor)
@@ -1167,11 +1171,13 @@ class QueueSystem(commands.Cog):
         print(MID)
 
     @commands.has_any_role(adminRole)
-    @commands.command(name = "stat_jlm")
-    async def stat_JLM(self, ctx):
+    @commands.command(name = "stat_queue")
+    async def stat_queue(self, ctx):
         msgString = (f"Players who joined the queue: {STAT_JQ}\n"
                     f"Players who left the queue: {STAT_LQ}\n"
-                    f"Matches generated: {STAT_MG}")
+                    f"Matches generated: {STAT_MG}\n"
+                    f"Unique users who joined queue: {len(STAT_UJQ)}\n"
+                    f"Unique users who left queue: {len(STAT_ULQ)}")
 
         await ctx.send(msgString)
 

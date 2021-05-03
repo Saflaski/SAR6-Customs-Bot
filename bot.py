@@ -64,8 +64,8 @@ async def help(ctx):
 	with open("commands.txt") as f:
 		commandsTextFile = f.read()
 
-	myEmbed = discord.Embed(title = "Help", color = embedSideColor)
-	myEmbed.add_field(name = f"Commands:", value = commandsTextFile)
+	myEmbed = discord.Embed(title = "Help", description = commandsTextFile, color = embedSideColor)
+	#myEmbed.add_field(name = f"Commands:", value = commandsTextFile)
 	myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 	myEmbed.set_thumbnail(url = thumbnailURL)
 
