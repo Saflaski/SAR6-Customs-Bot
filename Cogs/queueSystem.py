@@ -46,6 +46,9 @@ PIOM = {}
 #Generated Voice Channels
 GVC = {}
 
+#Current Result Panels Shown - To prevent double results (Temp Solution)
+CRPS = []
+
 ##Discord Values##
 
 lastLobbyUpdateMsg = object
@@ -721,6 +724,7 @@ class QueueSystem(commands.Cog):
     async def addManualResult(self, ctx, score):
         global PIOM
         global GVC
+        global CRPS
 
         #Checks if author is in an ongoing match
 
@@ -729,9 +733,17 @@ class QueueSystem(commands.Cog):
             if ctx.author.id in PIOM[match]:
                 PIOMCheck = True
 
+                #Check if another result panel has been opened up
+                if match in CRPS:
+                    await ctx.send("Please deny/confirm previous match result panel")
+                    return None
+
+
         if not PIOMCheck:
             await ctx.send("You aren't in an ongoing match")
             return None
+
+
 
         """
         addManualResult will now go through five stages:
@@ -799,6 +811,8 @@ class QueueSystem(commands.Cog):
                 return None
 
             print(f"Sending Match Result Pending Panel:{MID} ")
+
+            CRPS.append(MID)
 
             #Find which team author was in
 
@@ -904,7 +918,7 @@ class QueueSystem(commands.Cog):
                 print(f"Removed players and VCs from ongoing list \nMatch Closed: {MID}")
 
             #To check that captain has used correct reaction
-            checkCaptainID = lambda userID: userID == winCapt.id or myuser == lossCapt.id
+            checkCaptainID = lambda userID: userID == winCapt.id or userID == lossCapt.id
 
             def check(myreaction, myuser):
 
@@ -916,7 +930,7 @@ class QueueSystem(commands.Cog):
             winTeamConf = False
             lossTeamConf = False
 
-            timeout = 120
+            timeout = 12000                 #Basically 3+ hours
             timeout_start = time.time()     #Starts keeping track of time
 
             while time.time() < timeout_start + timeout:
@@ -927,19 +941,21 @@ class QueueSystem(commands.Cog):
                 #print(f"{myuser} did {myreaction}")
 
                 if check(myreaction, myuser):
+
                     if str(myreaction.emoji) == cross_mark and checkCaptainID(myuser.id):
                         embed.set_footer(text = f"Result denied by Captain: {myuser}", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
                         await sentEmbed.clear_reactions()
+                        CRPS.remove(MID)
                         return None
 
-                    elif myuser.id == winCapt.id:
+                    elif myuser.id == winCapt.id and str(myreaction.emoji) == check_mark:
                         winTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {winCapt}'s side", icon_url = footerIcoURL)
+                        embed.set_footer(text = f"Result accepted by {winCapt}'s side, awaiting opponent", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
-                    elif myuser.id == lossCapt.id:
+                    elif myuser.id == lossCapt.id and str(myreaction.emoji) == check_mark:
                         lossTeamConf = True
-                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side", icon_url = footerIcoURL)
+                        embed.set_footer(text = f"Result accepted by {lossCapt}'s side, awaiting opponent", icon_url = footerIcoURL)
                         await sentEmbed.edit(embed = embed)
 
 
@@ -951,10 +967,11 @@ class QueueSystem(commands.Cog):
                     await confirmMatch()
                     #Clear reactions from result embed object
                     await sentEmbed.clear_reactions()
+                    CRPS.remove(MID)
                     break
 
 
-                time.sleep(1)       #To avoid resource hogging (by looping continously)
+                time.sleep(0.5)       #To avoid resource hogging (by looping continously)
 
             await sentEmbed.clear_reactions()   #Clears reactions after timeout has happened/time limit has elapsed
 
@@ -1456,10 +1473,12 @@ def getBalancedTeams(lobbyDic):
     teamB = []
 
     playersPerSide = playersPerLobby // 2
+    averageScore = 0
 
     playerELOList = []
     for playerID in lobbyDic:
-    	playerELOList.append(lobbyDic[playerID])   #Appending ELOs of all players to a list
+        playerELOList.append(lobbyDic[playerID])   #Appending ELOs of all players to a list
+        averageScore += lobbyDic[playerID]
 
 
     #Find possibly team combos using sum differences
@@ -1524,6 +1543,8 @@ def getBalancedTeams(lobbyDic):
     else:
         teamA = list(foundCombos[0])
     """
+
+    averageScore = averageScore//playersPerLobby
 
     comb = list(combinations(playerELOList,playersPerSide))
 
