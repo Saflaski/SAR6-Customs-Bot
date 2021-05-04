@@ -203,7 +203,7 @@ class QueueSystem(commands.Cog):
         publicEmbed.set_footer(text = JSLfooterText, icon_url = footerIcoURL)
         await ctx.send(embed = publicEmbed)
         
-        await ctx.message.delete(delay = 1.5)
+        await ctx.message.delete()
 
     @joinQueue.error
     async def joinQueue_error(self, ctx, error):
@@ -311,7 +311,7 @@ class QueueSystem(commands.Cog):
             publicEmbed.set_footer(text = JSLfooterText, icon_url = footerIcoURL)
             await ctx.send(embed = publicEmbed)
 
-            await ctx.message.delete(delay = 1.5)           #Delete auth message
+            await ctx.message.delete()           #Delete auth message
 
             STAT_LQ += 1
             STAT_ULQ.add(member.id)
