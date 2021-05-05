@@ -1204,7 +1204,7 @@ class QueueSystem(commands.Cog):
     async def getUniquePlayersList(self, ctx):
         
         fString = ""
-        joinedPlayersList = list(STAT_UJQ - STAT_ULQ)
+        joinedPlayersList = list(STAT_UJQ)
 
         for playerID in  joinedPlayersList:
             fString += str(playerID) + "\n"
