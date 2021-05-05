@@ -392,7 +392,7 @@ class QueueSystem(commands.Cog):
         for playerDiscID in teamBList:
             teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
 
-        embedDescription = (    "**ID:** " + str(matchID) + "\n"
+        embedDescription = (    "**ID:** " + str(foundMatchID) + "\n"
                                 + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
                                 + "**Map:** " + matchMap
                              )
@@ -411,7 +411,7 @@ class QueueSystem(commands.Cog):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
             pass
-        elif isinstance(error, MissingRequiredArgument):
+        elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Usage: `.playermatch <@DiscordID>` - Tag is necessary to display their ongoing match")
 
     @commands.has_any_role(userRole, adminRole)
