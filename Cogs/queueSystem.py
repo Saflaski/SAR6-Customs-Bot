@@ -13,6 +13,7 @@ import random
 import math
 import statistics
 import json
+import pytz
 from os import environ
 from discord.ext import commands, tasks
 from itertools import combinations
@@ -1197,6 +1198,30 @@ class QueueSystem(commands.Cog):
                     f"Unique users who left queue: {len(STAT_ULQ)}")
 
         await ctx.send(msgString)
+
+    @commands.has_any_role(adminRole)
+    @commands.command(name = "UPL")
+    async def getUniquePlayersList(self, ctx):
+        
+        fString = ""
+        joinedPlayersList = list(STAT_UJQ - STAT_ULQ)
+
+        for playerID in  joinedPlayersList:
+            fString += str(playerID) + "\n"
+
+        #Make File Name
+
+        #ISTTime = pytz.timezone('Asia/Kolkata')
+        curDT = datime.datetime.now()
+        strCurDT = str(curDT.date())
+        fileName =  "SAR6C_" + strCurDT + "_Player_List.txt"
+
+        with open(fileName, "w") as f:
+            f.write(fString)
+
+        await ctx.send(file = discord.File(f"{fileName}"), content = f"Player list for {strCurDT}")
+        
+
 
     #### TESTING PURPOSES ####
 
