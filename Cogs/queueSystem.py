@@ -331,6 +331,90 @@ class QueueSystem(commands.Cog):
             pass
 
     @commands.has_any_role(userRole, adminRole)
+    @commands.command(aliases = ["playermatch","getplayermatch", "playerongoing"])
+    @checkCorrectChannel(channelIDList = completeChannelList)
+    async def getPlayerOngoingMatch(self, ctx, member : discord.Member):
+        
+        foundMatchID = None
+        for match in PIOM:
+            if member.id in PIOM[match]:
+                foundMatchID = match
+
+        if foundMatchID is None:
+            await ctx.send("Member is not in a currently ongoing match")
+            return None
+
+        matchDoc = matchesCol.find_one({"MID": foundMatchID})
+
+        if matchDoc is not None:
+            MID = matchDoc["MID"]
+            matchScore = matchDoc["score"]
+            teamAList = matchDoc["matchList"][:playersPerLobby//2]
+            teamBList = matchDoc["matchList"][playersPerLobby//2:]
+            teamACaptain = teamAList[0]
+            teamBCaptain = teamBList[0]
+
+            try:
+                matchMap = matchDoc["map"]
+            except:
+                matchMap = "Not Selected"
+
+        else:
+            myEmbed = discord.Embed(descripion = "Match not found", color = embedSideColor)
+            await ctx.send(embed = myEmbed)
+            return None
+
+        #Get Discord Names of Captains
+        CaptNameA = await self.client.fetch_user(teamACaptain)
+        CaptNameB = await self.client.fetch_user(teamBCaptain)
+
+        #Prepare Query List for dbCol collection
+        queryList = []
+        for playerDiscID in teamAList + teamBList:
+            playerDic = {"discID" : playerDiscID}
+            queryList.append(playerDic)
+
+        playerDocs = dbCol.find({"$or" : queryList})
+
+        lobbyDic = {}
+        for x in playerDocs:
+            lobbyDic[x["discID"]] = x["ELO"]
+
+
+
+        #Preparing Embed Value strings
+        teamStringA = ""
+        teamStringB = ""
+
+        for playerDiscID in teamAList:
+            teamStringA += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
+
+        for playerDiscID in teamBList:
+            teamStringB += f"\t<@{playerDiscID}> - `{lobbyDic[playerDiscID]}`\n"
+
+        embedDescription = (    "**ID:** " + str(matchID) + "\n"
+                                + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
+                                + "**Map:** " + matchMap
+                             )
+
+        myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
+        #myEmbed.add_field(name = "Details:", value = f"ID: {matchID}\nScore:{matchScore}", inline = True)
+        myEmbed.add_field(name = f"Team A: {CaptNameA}", value = teamStringA, inline = False)
+        myEmbed.add_field(name = f"Team B: {CaptNameB}", value = teamStringB, inline = False)
+
+        await ctx.send(embed = myEmbed)
+
+
+    @getPlayerOngoingMatch.error
+    async def getPlayerOngoingMatch_error(self, ctx, error):
+        if isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+        elif isinstance(error, MissingRequiredArgument):
+            await ctx.send("Usage: `.playermatch <@DiscordID>` - Tag is necessary to display their ongoing match")
+
+    @commands.has_any_role(userRole, adminRole)
     @commands.command(aliases = ["showM", "getMatch", "getM", "match"])
     @checkCorrectChannel(channelIDList = completeChannelList)
     async def showMatch(self, ctx, matchID):
