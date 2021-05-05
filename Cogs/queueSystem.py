@@ -1212,7 +1212,7 @@ class QueueSystem(commands.Cog):
         #Make File Name
 
         #ISTTime = pytz.timezone('Asia/Kolkata')
-        curDT = datime.datetime.now()
+        curDT = datetime.datetime.now()
         strCurDT = str(curDT.date())
         fileName =  "SAR6C_" + strCurDT + "_Player_List.txt"
 
