@@ -1120,7 +1120,7 @@ class QueueSystem(commands.Cog):
 
                 #Send Generated Match Embed
                 channel = self.client.get_channel(matchGenTC)
-                msg = await channel.send(embed = embeddedContent)
+                msg = await channel.send(content = f"Match ID: {matchID}", embed = embeddedContent)
                 msg_url = msg.jump_url
                 #Make Voice Channels with captains' names
                 VC_A = await myGuild.create_voice_channel(name = f"Team: {teamA_VCName}", category = voiceChannelCategory)
