@@ -71,6 +71,7 @@ queueTC = discTextChannels["queue"]
 matchGenTC = discTextChannels["matchGen"]
 postMatchTC = discTextChannels["postMatch"]
 adminTC = discTextChannels["admin"]
+ticketTCCategory = discServInfo["TicketCategory"]
 completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC, adminTC]
 
 #Roles
@@ -148,7 +149,8 @@ class QueueSystem(commands.Cog):
     def checkCorrectChannel(channelID = None, channelIDList = []):
         def function_wrapper(ctx):
             givenChannelID = ctx.message.channel.id
-            if givenChannelID in channelIDList or givenChannelID == channelID:
+            givenChannelCategory = ctx.message.channel.category_id
+            if givenChannelID in channelIDList or givenChannelID == channelID or givenChannelCategory == ticketTCCategory:
                 return True
             else:
                 return False
@@ -156,7 +158,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["joinq","join"])
+    @commands.command(aliases = ["joinq", "join", "queuepls", "khilaomujhe", "loseelo"])
     @checkCorrectChannel(channelID = queueTC)
     async def joinQueue(self, ctx):
 
@@ -286,7 +288,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["leaveq","leave", "nahikhelnamujhe"])
+    @commands.command(aliases = ["leaveq","leave", "nahikhelnamujhe", "winelo"])
     @checkCorrectChannel(channelID = queueTC)
     async def leaveQueue(self, ctx):
 
