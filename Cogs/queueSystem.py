@@ -88,7 +88,7 @@ MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "C
 
 #ELO System Values
 K_VAL = 75                  #K value for awarding Elo change based on Expected Win Probability
-EXPO_VAL = 800              #400 value for calculating Expected Win Probability
+EXPO_VAL = 3500             #400 value for calculating Expected Win Probability
 MIN_ELO_CHANGE = 10         #minmium ELO change possible
 
 #Message Links
@@ -357,6 +357,11 @@ class QueueSystem(commands.Cog):
             teamBCaptain = teamBList[0]
 
             try:
+                DT = str(matchDoc["DT"])
+            except:
+                DT = "Datetime not found"           #For legacy matches
+
+            try:
                 matchMap = matchDoc["map"]
             except:
                 matchMap = "Not Selected"
@@ -433,6 +438,11 @@ class QueueSystem(commands.Cog):
             teamBCaptain = teamBList[0]
 
             try:
+                DT = str(matchDoc["DT"])
+            except:
+                DT = "DateTime not found"       #For legacy matches
+
+            try:
                 matchMap = matchDoc["map"]
             except:
                 matchMap = "Not Selected"
@@ -472,7 +482,7 @@ class QueueSystem(commands.Cog):
 
         embedDescription = (    "**ID:** " + str(matchID) + "\n"
                                 + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
-                                + "**Map:** " + matchMap
+                                + "**Map: ** " + matchMap + "\n" + "**Datetime: **" + DT
                              )
 
         myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
@@ -553,6 +563,32 @@ class QueueSystem(commands.Cog):
     async def setELO_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
             await ctx.send("Invalid Usage, try: `.setELO <@discord ID> <ELO>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
+    @commands.has_any_role(adminRole)
+    @commands.command(aliases = ["changeElo", "changeELO"])
+    async def changeELO(self, ctx, member : discord.Member, ELOChange : int):
+
+        opResult = dbCol.update_one({"discID" : member.id}, { "$inc" : {"ELO" : ELOChange}})
+
+        if opResult.matched_count == 0:
+            failEmbed = discord.Embed(description = "User not found", color = 0xff0000)
+            await ctx.send(embed = failEmbed)
+            return None
+
+        else:
+            newDoc = dbCol.find_one({"discID":member.id})
+            newElo = newDoc["ELO"]
+            successEmbed = discord.Embed(description = f"Succesfully set ELO: {newElo}", color = 0x00ff00)
+            await ctx.send(embed = successEmbed)
+
+    @changeELO.error
+    async def changeELO_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.changeELO <@discord ID> <±ELO>`")
         elif isinstance(error, commands.MissingAnyRole):
             await ctx.send(embed = discord.Embed(description = "Inadequate role"))
         elif isinstance(error, commands.NoPrivateMessage):
@@ -755,17 +791,31 @@ class QueueSystem(commands.Cog):
                 curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
 
             #Revert Player Elos in Database
-            for playerID in curWinChange:
-                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
-            for playerID in curLossChange:
-                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
-            fString += "Reverted Elo. "
+            revRequests = []
+            for playerIDWinRev in curWinChange:
 
-        for playerID in winTeamChange:
-            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
-        for playerID in lossTeamChange:
-            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
-        fString += "Set new Elo. "
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDWinRev},{"$inc" : {"ELO" : curWinChange[playerIDWinRev]}}))
+            for playerIDLossRev in curLossChange:
+
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDLossRev},{"$inc" : {"ELO" : curLossChange[playerIDLossRev]}}))
+            
+            revOpResult = dbCol.bulk_write(revRequests)
+            fString += f"Reverted Elo: {revOpResult.modified_count}. "
+
+        newEloRequests = []
+        for playerIDWin in winTeamChange:
+            #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+
+            newEloRequests.append(pymongo.UpdateOne({"discID" : playerIDWin},{"$inc" : {"ELO" : winTeamChange[playerIDWin]}}))
+        for playerIDLoss in lossTeamChange:
+            #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
+
+            newEloRequests.append(pymongo.UpdateOne({"discID" : playerIDLoss},{"$inc" : {"ELO" : lossTeamChange[playerIDLoss]}}))
+
+        newEloResult = dbCol.bulk_write(newEloRequests)
+        fString += f"Set new Elo: {newEloResult.modified_count}. "
 
         #Update Match Score in Database
         match_score = str(f"{teamResult[1]}-{teamResult[2]}")
@@ -1297,9 +1347,9 @@ class QueueSystem(commands.Cog):
 
         #Make File Name
 
-        #ISTTime = pytz.timezone('Asia/Kolkata')
-        curDT = datetime.datetime.now()
-        strCurDT = str(curDT.date())
+        ISTTime = pytz.timezone('Asia/Kolkata')
+        curDT = datetime.datetime.now(ISTTime)
+        strCurDT = str(curDT.replace(microsecond = 0))
         fileName =  "SAR6C_" + strCurDT + "_Player_List.txt"
 
         with open(fileName, "w") as f:
@@ -1772,7 +1822,11 @@ def generateTeams(matchID, pList):
     #Captains at position 0 and 5, with the players of teams A,B after 0 and 5 respectively
     fullLobbyList = teamListA + teamListB
 
-    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList})
+    #Get Datetime according to IST
+    ISTTime = pytz.timezone('Asia/Kolkata')
+    curDT = datetime.datetime.now(ISTTime).replace(microsecond =0 )
+
+    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList, "DT" : curDT})
     print(f"Uploaded Generated Match: {matchID}")
 
     STAT_MG += 1
