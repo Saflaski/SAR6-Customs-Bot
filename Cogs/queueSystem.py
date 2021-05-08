@@ -1327,6 +1327,19 @@ class QueueSystem(commands.Cog):
     async def queueStart(self, ctx):
         self.findPossibleLobby.start()
         print(f"{ctx.author} has started the queue.")
+    
+    #Match Gen Start/Stop
+    @commands.command(name = "matchGenStop")
+    @commands.has_any_role(adminRole)
+    async def matchGenStop(self, ctx):
+        self.findGeneratedLobby.stop()
+        print(f"{ctx.author} has stopped Match Gen Loop.")
+    
+    @commands.command(name = "matchGenStart")
+    @commands.has_any_role(adminRole)
+    async def matchGenStart(self, ctx):
+        self.findGeneratedLobby.start()
+        print(f"{ctx.author} has started Match Gen Loop.")
         
 
 
