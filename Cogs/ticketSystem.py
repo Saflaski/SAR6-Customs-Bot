@@ -15,7 +15,7 @@ from discord.ext import commands, tasks
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
-db = myclient["TM_DB"]
+#db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 ticketsCol = db["tickets_col"]

@@ -23,7 +23,7 @@ from itertools import combinations
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
-db = myclient["TM_DB"]
+#db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -59,7 +59,7 @@ with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
 
-playersPerLobby = 2                                        #Cannot be odd number
+playersPerLobby = 10                                        #Cannot be odd number
 myGuildID = discServInfo["guildID"]                         #Used later to get myGuild
 myGuild = None                                              #Guild for which Bot is run
 voiceChannelCategoryID = discServInfo["vcCategoryID"]       #Used later to get voiceChannelCategory
@@ -200,7 +200,10 @@ class QueueSystem(commands.Cog):
         #Send DM
         dmEmbed = discord.Embed(title = "Player Joined", description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", 
                             colour = embedSideColor)
-        await ctx.author.send(embed = dmEmbed)
+        try:
+            await ctx.author.send(embed = dmEmbed)
+        except:
+            print(f"Could not send DM to {ctx.author}")
 
         #Send public message
         publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
@@ -307,7 +310,10 @@ class QueueSystem(commands.Cog):
             
             #Send DM
             dmEmbed = discord.Embed(description = f"You were removed from queue\n{len(GQL)}/{playersPerLobby}", colour = embedSideColor)
-            await ctx.author.send(embed = dmEmbed)
+            try:
+                await ctx.author.send(embed = dmEmbed)
+            except:
+                print(f"Could not send DM to {ctx.author}")
 
             #Send public message
             publicEmbed = discord.Embed(title = "Player Left", description = f"Current queue: {len(GQL)}/{playersPerLobby}", 

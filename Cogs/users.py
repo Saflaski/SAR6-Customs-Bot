@@ -10,7 +10,7 @@ from discord.ext import commands
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
-db = myclient["TM_DB"]
+#db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -23,7 +23,7 @@ footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/8328
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
-playersPerLobby = 2
+playersPerLobby = 10
 
 #Discord Values
 with open("ServerInfo.json") as jsonFile:
@@ -77,7 +77,9 @@ class Users(commands.Cog):
 
 
 		if dbCol.find_one({"discID": author.id}):				#Checks if user is already registered
-			await ctx.send(f'\N{Cross Mark} {author} is already registered!')
+			await ctx.send(embed = discord.Embed(
+				description = f'\N{Cross Mark} {author} is already registered!\nUse `.updateuplay newIGN` to change your uplay IGN.',
+				colour = 0xFF0000))
 
 		else:													#If not registered, prepares dictionary for mongodb insert
 			tempDict = 	{	"discID": author.id ,
@@ -85,6 +87,8 @@ class Users(commands.Cog):
 							"dateRegistered" : datetime.datetime.now(),
 							"uplayIGN" : uplayIGN,
 							"ELO" : baseELO,
+							"wins" : 0,
+							"loss" : 0
 						}
 			try:						#Inserts data
 				x = dbCol.insert_one(tempDict)
@@ -167,6 +171,15 @@ class Users(commands.Cog):
 		userDiscName = mydoc["discName"]
 		userUplayID = mydoc["uplayIGN"]
 		userELO = mydoc["ELO"]
+		userWins = mydoc["wins"]
+		userLoss = mydoc["loss"]
+
+		userTotalMatches = userWins + userLoss
+		userWinPercent = "{:.2f}".format((userWins/userTotalMatches)*100) + "%"
+		userWinDiff = userWins - userLoss
+
+		statString = f"```yaml\nWins: {userWins}\nMatches played: {userTotalMatches}\nWin Percentage: {userWinPercent}\n```"
+
 
 		userJoinDate = mydoc["dateRegistered"]
 		userJoinDate = userJoinDate.date()
@@ -210,11 +223,12 @@ class Users(commands.Cog):
 
 
 		myEmbed = discord.Embed(title = f"{userDiscName}", color = embedSideColor)
-		myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = True)
+		myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = False)
+		myEmbed.add_field(name = "Rank: ", value = globalRank, inline = True)
 		myEmbed.add_field(name = "ELO: ", value = userELO, inline = True)
+		myEmbed.add_field(name = "Win/Loss stats: ", value = statString, inline = False)
+		myEmbed.add_field(name = "Last 10 matches:", value = WLString, inline = False)
 		myEmbed.add_field(name = "Join Date:", value = userJoinDate, inline = False)
-		myEmbed.add_field(name = "Rank: ", value = globalRank, inline = False)
-		myEmbed.add_field(name = "Win-Loss (last 10):", value = WLString, inline = False)
 		myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 		await ctx.send(embed = myEmbed)
 
