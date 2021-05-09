@@ -1,5 +1,5 @@
 `.info` -> Shows your own info
-`.info <@discordID or Uplay ID>` : Shows info of user with given @DiscordID/Uplay ID
+`.info <@discordID>` : Shows info of user with given @DiscordID
 *Remember to tag the user if you use @DiscordID to search*
 `.lb` : Shows Leaderboard
 *Page-flipping can only be done by the user who used .lb*
@@ -16,8 +16,6 @@
 *Score should be in the format <your team's score>-<their team's score>*
 *Eg. If you win 7-5, then it's `.result 7-5`, if you lose 5-7, `result 5-7`*
 
-**Tickets**
-`.openticket` -> Get a DM from the bot to start generating a ticket
 
 **MISC**
 `.ongoing` -> Shows list of ongoing matches

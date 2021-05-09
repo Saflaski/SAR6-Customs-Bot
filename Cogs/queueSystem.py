@@ -23,6 +23,7 @@ from itertools import combinations
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
+#db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -88,7 +89,7 @@ MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "C
 
 #ELO System Values
 K_VAL = 75                  #K value for awarding Elo change based on Expected Win Probability
-EXPO_VAL = 800              #400 value for calculating Expected Win Probability
+EXPO_VAL = 3500             #400 value for calculating Expected Win Probability
 MIN_ELO_CHANGE = 10         #minmium ELO change possible
 
 #Message Links
@@ -199,7 +200,10 @@ class QueueSystem(commands.Cog):
         #Send DM
         dmEmbed = discord.Embed(title = "Player Joined", description = f"You are now in queue\n{len(GQL)}/{playersPerLobby}", 
                             colour = embedSideColor)
-        await ctx.author.send(embed = dmEmbed)
+        try:
+            await ctx.author.send(embed = dmEmbed)
+        except:
+            print(f"Could not send DM to {ctx.author}")
 
         #Send public message
         publicEmbed = discord.Embed(description = f"Current queue: {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
@@ -306,7 +310,10 @@ class QueueSystem(commands.Cog):
             
             #Send DM
             dmEmbed = discord.Embed(description = f"You were removed from queue\n{len(GQL)}/{playersPerLobby}", colour = embedSideColor)
-            await ctx.author.send(embed = dmEmbed)
+            try:
+                await ctx.author.send(embed = dmEmbed)
+            except:
+                print(f"Could not send DM to {ctx.author}")
 
             #Send public message
             publicEmbed = discord.Embed(title = "Player Left", description = f"Current queue: {len(GQL)}/{playersPerLobby}", 
@@ -357,6 +364,12 @@ class QueueSystem(commands.Cog):
             teamBCaptain = teamBList[0]
 
             try:
+                DT = matchDoc["DT"]
+                DT = str(DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata')))
+            except:
+                DT = "Datetime not found"           #For legacy matches
+
+            try:
                 matchMap = matchDoc["map"]
             except:
                 matchMap = "Not Selected"
@@ -396,7 +409,7 @@ class QueueSystem(commands.Cog):
 
         embedDescription = (    "**ID:** " + str(foundMatchID) + "\n"
                                 + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
-                                + "**Map:** " + matchMap
+                                + "**Map:** " + matchMap + "\n" + "**Generated at: **" + DT + " IST"
                              )
 
         myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
@@ -431,6 +444,12 @@ class QueueSystem(commands.Cog):
             teamBList = matchDoc["matchList"][playersPerLobby//2:]
             teamACaptain = teamAList[0]
             teamBCaptain = teamBList[0]
+
+            try:
+                DT = matchDoc["DT"]
+                DT = str(DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata')))
+            except:
+                DT = "DateTime not found"       #For legacy matches
 
             try:
                 matchMap = matchDoc["map"]
@@ -472,7 +491,7 @@ class QueueSystem(commands.Cog):
 
         embedDescription = (    "**ID:** " + str(matchID) + "\n"
                                 + "**Score:** " + "A " +str(matchScore[0]) + "-" + str(matchScore[2]) + " B"+ "\n"
-                                + "**Map:** " + matchMap
+                                + "**Map: ** " + matchMap + "\n" + "**Generated at: **" + DT + " IST"
                              )
 
         myEmbed = discord.Embed(title = "Match Found", description = embedDescription, color = embedSideColor)
@@ -558,6 +577,32 @@ class QueueSystem(commands.Cog):
         elif isinstance(error, commands.NoPrivateMessage):
             pass
 
+    @commands.has_any_role(adminRole)
+    @commands.command(aliases = ["changeelo",])
+    async def changeELO(self, ctx, member : discord.Member, ELOChange : int):
+
+        opResult = dbCol.update_one({"discID" : member.id}, { "$inc" : {"ELO" : ELOChange}})
+
+        if opResult.matched_count == 0:
+            failEmbed = discord.Embed(description = "User not found", color = 0xff0000)
+            await ctx.send(embed = failEmbed)
+            return None
+
+        else:
+            newDoc = dbCol.find_one({"discID":member.id})
+            newElo = newDoc["ELO"]
+            successEmbed = discord.Embed(description = f"Succesfully set ELO: {newElo}", color = 0x00ff00)
+            await ctx.send(embed = successEmbed)
+
+    @changeELO.error
+    async def changeELO_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            await ctx.send("Invalid Usage, try: `.changeELO <@discord ID> <±ELO>`")
+        elif isinstance(error, commands.MissingAnyRole):
+            await ctx.send(embed = discord.Embed(description = "Inadequate role"))
+        elif isinstance(error, commands.NoPrivateMessage):
+            pass
+
 
     @commands.has_any_role(adminRole)
     @commands.command(name = "cancelmatch")
@@ -571,14 +616,48 @@ class QueueSystem(commands.Cog):
         global PIOM
         global GVC
         #Sets the Database score to C-C
-        #Doesn't update Elo
+        #Updates Elo to original
         #Check and remove from PIOM
         #Check and remove VCs
+        fString = ""
+        matchDoc = matchesCol.find_one({"MID" : matchID})
+
+
+
+        #Revert Previous Elo Win/Loss
+        currentMatchScore = matchDoc["score"]
+        teamAList = matchDoc["matchList"][:playersPerLobby//2]
+        teamBList = matchDoc["matchList"][playersPerLobby//2:]
+        matchDict = ongMatchFileOps("R", matchID)
+        curTeamResult = checkCorrectScore(currentMatchScore)        #Parse the old match score
+
+        if currentMatchScore != "C-C" and currentMatchScore != "0-0":
+            if curTeamResult[1] > curTeamResult[2]:
+                #Team A won
+                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False)
+            else:
+                #Team B won
+                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
+
+            #Revert Player Elos in Database
+            revRequests = []
+            WLUpdate = []
+            for playerIDWinRev in curWinChange:
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDWinRev},{"$inc" : {"ELO" : curWinChange[playerIDWinRev]}}))
+                WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDWinRev}, {"$inc" : {"wins" : -1}}))
+
+            for playerIDLossRev in curLossChange:
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDLossRev},{"$inc" : {"ELO" : curLossChange[playerIDLossRev]}}))
+                WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDLossRev}, {"$inc" : {"loss" : -1}}))
+                
+            revOpResult = dbCol.bulk_write(revRequests)
+            WLUpdateResult = dbCol.bulk_write(WLUpdate)
+            fString += f"Reverted Elo: {revOpResult.modified_count}. Modified W/L: {WLUpdateResult.modified_count}. "
 
         #Update Match Score in Database
-        fString = ""
 
-        matchDoc = matchesCol.find_one({"MID" : matchID})
         if matchDoc is not None:
             matchesCol.update({"MID" : matchID},{"$set" : {"score" : "C-C"}})
             fString += "Updated score to C-C. "
@@ -742,6 +821,9 @@ class QueueSystem(commands.Cog):
         fString = ""    #Used to send command result to admin
 
         #Check if the match is still going on
+
+        WLUpdate = []           #For updating player Win/Loss
+
         if currentMatchScore != "0-0" and currentMatchScore != "C-C":        #Elo Reversion required before updation
 
             #Get appropriate Elo changes to 'revert' everyone's Elos according to pre-match Elos
@@ -755,17 +837,36 @@ class QueueSystem(commands.Cog):
                 curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
 
             #Revert Player Elos in Database
-            for playerID in curWinChange:
-                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
-            for playerID in curLossChange:
-                dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
-            fString += "Reverted Elo. "
+            revRequests = []
+            for playerIDWinRev in curWinChange:
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curWinChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDWinRev},{"$inc" : {"ELO" : curWinChange[playerIDWinRev]}}))
+                WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDWinRev}, {"$inc" : {"wins" : -1}}))
+           
+            for playerIDLossRev in curLossChange:
+                #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : curLossChange[playerID]}})
+                revRequests.append(pymongo.UpdateOne({"discID" : playerIDLossRev},{"$inc" : {"ELO" : curLossChange[playerIDLossRev]}}))
+                WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDLossRev}, {"$inc" : {"loss" : -1}}))
+            
+            revOpResult = dbCol.bulk_write(revRequests)
+            fString += f"Reverted Elo: {revOpResult.modified_count}. "
+        
+        newEloRequests = []
+        for playerIDWin in winTeamChange:
+            #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+            newEloRequests.append(pymongo.UpdateOne({"discID" : playerIDWin},{"$inc" : {"ELO" : winTeamChange[playerIDWin]}}))
+            WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDWin}, {"$inc" : {"wins" : 1}}))
 
-        for playerID in winTeamChange:
-            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
-        for playerID in lossTeamChange:
-            dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
-        fString += "Set new Elo. "
+        for playerIDLoss in lossTeamChange:
+            #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
+            newEloRequests.append(pymongo.UpdateOne({"discID" : playerIDLoss},{"$inc" : {"ELO" : lossTeamChange[playerIDLoss]}}))
+            WLUpdate.append(pymongo.UpdateOne({"discID" : playerIDLoss}, {"$inc" : {"loss" : 1}}))
+
+        newEloResult = dbCol.bulk_write(newEloRequests)
+        fString += f"Set new Elo: {newEloResult.modified_count}. "
+        op_WLUpdateResult = dbCol.bulk_write(WLUpdate)
+        fString += f"W/L Modified: {op_WLUpdateResult.modified_count}. "
+
 
         #Update Match Score in Database
         match_score = str(f"{teamResult[1]}-{teamResult[2]}")
@@ -980,11 +1081,20 @@ class QueueSystem(commands.Cog):
                 matchesCol.update({"MID" : MID},{"$set" : {"score" : DB_score}})
                 print(f"Updated DB for score: {DB_score}")
 
-                #Update Player Scores in Database
+                #Update Player Scores and Win/Loss in Database
+                WLUpdate = []
+                ELOUpdate = []
                 for playerID in winTeamChange:
-                    dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+                    #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}})
+                    ELOUpdate.append(pymongo.UpdateOne({"discID" : playerID}, {"$inc" : {"ELO" : winTeamChange[playerID]}}))
+                    WLUpdate.append(pymongo.UpdateOne({"discID" : playerID},{"$inc" : {"wins" : 1}}))
                 for playerID in lossTeamChange:
-                    dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
+                    #dbCol.update_one({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}})
+                    ELOUpdate.append(pymongo.UpdateOne({"discID" : playerID}, {"$inc" : {"ELO" : lossTeamChange[playerID]}}))
+                    WLUpdate.append(pymongo.UpdateOne({"discID" : playerID},{"$inc" : {"loss" : 1}}))
+                
+                op_WLUpdateResult = dbCol.bulk_write(WLUpdate)
+                op_ELOUpdateResult = dbCol.bulk_write(ELOUpdate)
 
                 #Remove the matchID from PIOM
                 if MID in PIOM:
@@ -1058,7 +1168,8 @@ class QueueSystem(commands.Cog):
                     break
 
 
-                time.sleep(0.5)       #To avoid resource hogging (by looping continously)
+                #time.sleep(0.5)       #To avoid resource hogging (by looping continously)
+                await asyncio.sleep(0.5)
 
             await sentEmbed.clear_reactions()   #Clears reactions after timeout has happened/time limit has elapsed
 
@@ -1136,11 +1247,14 @@ class QueueSystem(commands.Cog):
                 for playerID in pList:
                     playerObj = await self.client.fetch_user(playerID)
                     if playerObj is not None:
-                        dmEmbed = discord.Embed(title = "Match Found - SAR6", 
-                                                description = f"Click [here]({msg_url}) to go straight to the match panel.\nClick [here]({LOBBY_SETTINGS}) for Lobby Settings",
-                                                color = embedSideColor)
-                        dmEmbed.set_thumbnail(url = thumbnailURL)
-                        await playerObj.send(embed = dmEmbed)
+                        try:
+                            dmEmbed = discord.Embed(title = "Match Found - SAR6", 
+                                                    description = f"Click [here]({msg_url}) to go straight to the match panel.\nClick [here]({LOBBY_SETTINGS}) for Lobby Settings",
+                                                    color = embedSideColor)
+                            dmEmbed.set_thumbnail(url = thumbnailURL)
+                            await playerObj.send(embed = dmEmbed)
+                        except:
+                            print(f"Could not send DM to {playerObj}")
                 print("Match Gen Cycle complete")
                 break
 
@@ -1229,7 +1343,8 @@ class QueueSystem(commands.Cog):
                     await msg.clear_reactions()
                     break
 
-            time.sleep(1)       #Avoid resource hogging
+            #time.sleep(1)       #Avoid resource hogging
+            await asyncio.sleep(1)
 
         if len(lastMap) != 0:
             matchesCol.update_one({"MID": MID },{"$set" : {"map" : lastMap}})
@@ -1297,9 +1412,9 @@ class QueueSystem(commands.Cog):
 
         #Make File Name
 
-        #ISTTime = pytz.timezone('Asia/Kolkata')
-        curDT = datetime.datetime.now()
-        strCurDT = str(curDT.date())
+        ISTTime = pytz.timezone('Asia/Kolkata')
+        curDT = datetime.datetime.now(ISTTime)
+        strCurDT = str(curDT.replace(microsecond = 0)).rstrip('+5:30').replace(":",".")
         fileName =  "SAR6C_" + strCurDT + "_Player_List.txt"
 
         with open(fileName, "w") as f:
@@ -1327,7 +1442,7 @@ class QueueSystem(commands.Cog):
     async def queueStart(self, ctx):
         self.findPossibleLobby.start()
         print(f"{ctx.author} has started the queue.")
-    
+
     #Match Gen Start/Stop
     @commands.command(name = "matchGenStop")
     @commands.has_any_role(adminRole)
@@ -1785,7 +1900,15 @@ def generateTeams(matchID, pList):
     #Captains at position 0 and 5, with the players of teams A,B after 0 and 5 respectively
     fullLobbyList = teamListA + teamListB
 
-    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList})
+    #Get Datetime according to IST
+    ISTTime = pytz.timezone('Asia/Kolkata')
+    curDT = datetime.datetime.now(ISTTime).replace(microsecond = 0)
+
+    OrigELOList = []
+    for player in fullLobbyList:
+        OrigELOList.append(lobbyDic[player])
+
+    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList, "DT" : curDT, "origElo" : OrigELOList})
     print(f"Uploaded Generated Match: {matchID}")
 
     STAT_MG += 1

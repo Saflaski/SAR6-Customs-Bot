@@ -10,8 +10,11 @@
 `.findticket <ticket ID>` : Finds a ticket with given ticket ID
 `.findopentickets` : Finds all open tickets
 
-`.queueStop` : Stops the queue
-`.queueStart` : Starts the queue
+**Critical**
+`.queueStop` : Stops the Lobby Generation Process
+`.queueStart` : Starts the Lobby Generation Process
+`.matchGenStop` : Stops Match Generation Process
+`.matchGenStart` : Starts Match Generation Process
 *By default, the queue is turned on when the bot is turned on at first*
 
 `.QSTest <<match ID>>` : Diagnostics test that prints GVC, GQL, PIOM into console
