@@ -175,7 +175,10 @@ class Users(commands.Cog):
 		userLoss = mydoc["loss"]
 
 		userTotalMatches = userWins + userLoss
-		userWinPercent = "{:.2f}".format((userWins/userTotalMatches)*100) + "%"
+		if userTotalMatches != 0:
+			userWinPercent = "{:.2f}".format((userWins/userTotalMatches)*100) + "%"
+		else:
+			userWinPercent = "N/A"
 		userWinDiff = userWins - userLoss
 
 		statString = f"```yaml\nWins: {userWins}\nMatches played: {userTotalMatches}\nWin Percentage: {userWinPercent}\n```"
