@@ -10,6 +10,7 @@ from discord.ext import commands
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
+db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -22,7 +23,7 @@ footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/8328
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
-playersPerLobby = 10
+playersPerLobby = 2
 
 #Discord Values
 with open("ServerInfo.json") as jsonFile:
@@ -114,9 +115,12 @@ class Users(commands.Cog):
 	@commands.command(name = "info")
 	@commands.guild_only()
 	@checkCorrectChannel(channelIDList = completeChannelList)
-	async def getUserInfo(self, ctx, givenID = ""):
+	async def getUserInfo(self, ctx, givenUser : discord.Member = None):
 
 		print(f"{ctx.author} used info")
+
+		"""
+		#LEGACY SYSTEM THAT FINDS FOR UPLAY + DISCORD + SELF MODE
 
 		myRegex = re.compile("<.*\d{18}>$")				#Discord ID format is <!@000000000000000000>
 		rawList = myRegex.findall(givenID)				#Performs regex search to see if Discord ID was included
@@ -137,7 +141,17 @@ class Users(commands.Cog):
 
 			print(f"Uplay mode: {ctx.author.id}")
 			mydoc = dbCol.find_one({"uplayIGN" : givenID})
+		"""
 
+		if givenUser is not None:
+			mydoc = dbCol.find_one({"discID" : givenUser.id})
+			print(f"@Discord mode: {givenUser}")
+		else:
+			mydoc = dbCol.find_one({"discID" : ctx.author.id})
+			print(f"@Self mode")
+
+
+		
 		userDiscName = ""		#Later used to check if data extracted successfully
 
 		#Extract Data from collection

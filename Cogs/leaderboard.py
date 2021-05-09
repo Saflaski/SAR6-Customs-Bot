@@ -12,6 +12,7 @@ from os import environ
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
+db = myclient["TM_DB"]
 dbCol = db["users_col"]
 
 #Global Variables
@@ -175,7 +176,8 @@ class Leaderboard(commands.Cog):
 				await lb_msg.edit(embed = getEmbedObject())
 				await lb_msg.remove_reaction(left_arrow, ctx.author)
 
-			time.sleep(1)		#To avoid resource hogging (by looping continously)
+			#time.sleep(1)		#To avoid resource hogging (by looping continously)
+			await asyncio.sleep(1)
 
 		await lb_msg.clear_reactions()	#Clears reactions after timeout has happened/time limit has elapsed
 
