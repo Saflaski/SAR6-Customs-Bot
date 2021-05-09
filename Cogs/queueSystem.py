@@ -364,8 +364,8 @@ class QueueSystem(commands.Cog):
             teamBCaptain = teamBList[0]
 
             try:
-                DT = str(matchDoc["DT"])
-                DT = DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata'))
+                DT = matchDoc["DT"]
+                DT = str(DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata')))
             except:
                 DT = "Datetime not found"           #For legacy matches
 
@@ -446,8 +446,8 @@ class QueueSystem(commands.Cog):
             teamBCaptain = teamBList[0]
 
             try:
-                DT = str(matchDoc["DT"])
-                DT = DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata'))
+                DT = matchDoc["DT"]
+                DT = str(DT.replace(tzinfo=pytz.utc).astimezone(tz=pytz.timezone('Asia/Kolkata')))
             except:
                 DT = "DateTime not found"       #For legacy matches
 
