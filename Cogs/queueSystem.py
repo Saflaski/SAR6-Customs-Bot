@@ -1308,7 +1308,7 @@ class QueueSystem(commands.Cog):
 
         while time.time() < timeout_start + timeout:
             try:
-                myreaction, myuser = await self.client.wait_for('reaction_add',timeout = 600.0, check = check)
+                myreaction, myuser = await self.client.wait_for('reaction_add',timeout = 420.0, check = check)
             except asyncio.TimeoutError:
                 print("Map Ban timed out")
                 break
@@ -1344,7 +1344,8 @@ class QueueSystem(commands.Cog):
                     break
 
             #time.sleep(1)       #Avoid resource hogging
-            await asyncio.sleep(1)
+            #print(timeout_start + timeout - time.time())
+            #await asyncio.sleep(1)
 
         if len(lastMap) != 0:
             matchesCol.update_one({"MID": MID },{"$set" : {"map" : lastMap}})
@@ -1354,9 +1355,20 @@ class QueueSystem(commands.Cog):
             await msg.edit(embed = embedMessage)
             print(f"Map set: {lastMap}")
         else:
-            print("Map not set")
-            embedMessage.set_footer(text = f"Maps were not selected, match cancelled.", icon_url = footerIcoURL)
-            await self.cancelMatch(matchID = MID)
+            #Auto select a map
+
+            lastMap = random.choice(list(someDict.values()))
+            attackTeam = teamA_VCName
+            defenseTeam = teamB_VCName
+            #print(lastMap)
+            embedMessage.set_field_at(3, name = f"Map Ban Result (Auto-Selected): {lastMap}", value = f"** **")
+            embedMessage.set_footer(text = f"GLHF! Attack Team: {attackTeam}, Defense Team: {defenseTeam}", icon_url = footerIcoURL)
+
+            matchesCol.update_one({"MID": MID },{"$set" : {"map" : lastMap}})
+
+            print(f"Map not set. Auto-selecting: {lastMap}")
+            #embedMessage.set_footer(text = f"Maps were not selected, match cancelled.", icon_url = footerIcoURL)
+            #await self.cancelMatch(matchID = MID)
             await msg.edit(embed = embedMessage)
             await msg.clear_reactions()
 
