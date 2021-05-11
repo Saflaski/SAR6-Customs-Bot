@@ -159,7 +159,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["joinq", "join", "queuepls", "khilaomujhe", "loseelo"])
+    @commands.command(aliases = ["joinq", "join", "queuepls", "khilaomujhe", "loseelo", "jq"])
     @checkCorrectChannel(channelID = queueTC)
     async def joinQueue(self, ctx):
 
@@ -292,7 +292,7 @@ class QueueSystem(commands.Cog):
 
 
     @commands.has_any_role(userRole, adminRole)
-    @commands.command(aliases = ["leaveq","leave", "nahikhelnamujhe", "winelo"])
+    @commands.command(aliases = ["leaveq","leave", "nahikhelnamujhe", "winelo", "lq"])
     @checkCorrectChannel(channelID = queueTC)
     async def leaveQueue(self, ctx):
 
