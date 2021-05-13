@@ -1402,7 +1402,7 @@ class QueueSystem(commands.Cog):
         print(MID)
 
     @commands.has_any_role(adminRole)
-    @commands.command(name = "stat_queue")
+    @commands.command(name = "stats")
     async def stat_queue(self, ctx):
         msgString = (f"Players who joined the queue: {STAT_JQ}\n"
                     f"Players who left the queue: {STAT_LQ}\n"
@@ -1413,7 +1413,7 @@ class QueueSystem(commands.Cog):
         await ctx.send(msgString)
 
     @commands.has_any_role(adminRole)
-    @commands.command(name = "stat_queue_reset")
+    @commands.command(name = "statq_reset")
     async def stat_queue(self, ctx):
         global STAT_JQ
         global STAT_LQ
