@@ -1413,6 +1413,24 @@ class QueueSystem(commands.Cog):
         await ctx.send(msgString)
 
     @commands.has_any_role(adminRole)
+    @commands.command(name = "stat_queue_reset")
+    async def stat_queue(self, ctx):
+        global STAT_JQ
+        global STAT_LQ
+        global STAT_MG
+        global STAT_UJQ
+        global STAT_ULQ
+
+        STAT_JQ = 0
+        STAT_LQ = 0
+        STAT_MG = 0
+        STAT_UJQ.clear()
+        STAT_ULQ.clear()
+
+        await ctx.send("Queue Stats Reset")
+
+
+    @commands.has_any_role(adminRole)
     @commands.command(name = "UPL")
     async def getUniquePlayersList(self, ctx):
         
