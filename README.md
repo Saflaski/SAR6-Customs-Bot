@@ -83,7 +83,7 @@ A completely new user has to go through the following steps to get started:
 
 The current Elo rating system is based on the [Elo Rating System](https://www.geeksforgeeks.org/elo-rating-algorithm/) developed by [Arpad Elo](https://en.wikipedia.org/wiki/Arpad_Elo)
 
-###### The two important values in the calculation system is the *Exponent* value (usually `400`) and the *K* value. For our purposes, the Exponent value is set to `800` and the K value set to `75`
+###### The two important values in the calculation system is the *Exponent* value (usually `400`) and the *K* value. For our purposes, the Exponent value is set to `3500` and the K value set to `75`
 <br>
 
 *Expected Win Probability Calculation:*
