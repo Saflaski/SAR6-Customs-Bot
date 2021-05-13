@@ -1413,8 +1413,8 @@ class QueueSystem(commands.Cog):
         await ctx.send(msgString)
 
     @commands.has_any_role(adminRole)
-    @commands.command(name = "statq_reset")
-    async def stat_queue(self, ctx):
+    @commands.command(name = "stats_reset")
+    async def stat_queue_reset(self, ctx):
         global STAT_JQ
         global STAT_LQ
         global STAT_MG
