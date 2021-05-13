@@ -1724,12 +1724,11 @@ def getBalancedTeams(lobbyDic):
     teamB = []
 
     playersPerSide = playersPerLobby // 2
-    averageScore = 0
 
     playerELOList = []
     for playerID in lobbyDic:
         playerELOList.append(lobbyDic[playerID])   #Appending ELOs of all players to a list
-        averageScore += lobbyDic[playerID]
+        #averageScore += lobbyDic[playerID]
 
 
     #Find possibly team combos using sum differences
@@ -1795,30 +1794,51 @@ def getBalancedTeams(lobbyDic):
         teamA = list(foundCombos[0])
     """
 
-    averageScore = averageScore//playersPerLobby
+    #averageScore = averageScore//playersPerLobby
 
     comb = list(combinations(playerELOList,playersPerSide))
 
     #diff from Lobby average for first combination (only used for initial run of loop)
-    diffFromAVG = abs(averageScore - sum(comb[0])//playersPerSide)
     teamA = []
 
+
+
     teamA = list(comb[0]).copy()
-    for i in comb:
+    teamB = playerELOList.copy()
+    for player in teamA:
+        teamB.remove(player)
+
+    diffFromAVG = abs(sum(teamA) - sum(teamB))
+    finalTeamA = teamA.copy()
+    finalTeamB = teamB.copy()
+
+    for teamComb in comb:
+        #print(i)
+        teamB = playerELOList.copy()
+        teamA = list(teamComb)
+        for player in teamA:
+            teamB.remove(player)
+        #print(teamA)
+        #print(teamB)
+        #print(diffFromAVG)
         try:
-            if diffFromAVG > abs(averageScore - (sum(i)//playersPerSide)):
+            if diffFromAVG > abs(sum(teamA) - sum(teamB)):
                 #If diff higher than combination i's average, then assign to Team A
-                teamA = list(i).copy()
                 #New Diff from AVG
-                diffFromAVG = abs(averageScore - (sum(i)//playersPerSide))
+                diffFromAVG = abs(sum(teamA) - sum(teamB))
+                #print(statistics.mean(teamA))
+                #print(statistics.mean(teamB))
+                finalTeamA = teamA.copy()
+                finalTeamB = teamB.copy()
+
+                #print(str(sum(teamA)) + "-" + str(sum(teamB)))
         except Exception as e:
             print(e)
 
-    #Assign ELOs not in TeamA to TeamB
-    teamB = playerELOList.copy()
-    for i in teamA:
-        teamB.remove(i)
-
+    teamA = finalTeamA.copy()
+    teamB = finalTeamB.copy()
+    #print(str(finalTeamA)+ "-" + str(finalTeamB))
+    
     #Prepare dictionaries for returning
     dicTeamA = {}
     dicTeamB = {}
@@ -1828,7 +1848,8 @@ def getBalancedTeams(lobbyDic):
     #Match ELOs in TeamA to Players and assign them to dicTeamA
     for x in mydic:
     	if mydic[x] in teamA and len(dicTeamA) < playersPerSide:
-    		dicTeamA.update({x:mydic[x]})
+            teamA.remove(mydic[x])
+            dicTeamA.update({x:mydic[x]})
 
 
     #Match remaining Players to TeamB
