@@ -10,7 +10,7 @@ from discord.ext import commands
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
-#db = myclient["TM_DB"]
+db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -23,7 +23,7 @@ footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/8328
 thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
 
 #Global variables
-playersPerLobby = 10
+playersPerLobby = 2
 
 #Discord Values
 with open("ServerInfo.json") as jsonFile:
@@ -36,10 +36,12 @@ queueTC = discTextChannels["queue"]
 adminTC = discTextChannels["admin"]
 ticketsTC = discTextChannels["tickets"]
 completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC, queueTC]
+
 #Roles
 adminRole = "R6C Admin"
 userRole = "R6C"
 
+cross_mark = '\u274C'
 
 class Users(commands.Cog):
 
@@ -305,6 +307,60 @@ class Users(commands.Cog):
 		myEmbed.add_field(name = "Previous Uplay ID:", value = myDoc["uplayIGN"], inline = False)
 		myEmbed.add_field(name = "Requested Uplay ID:", value = newUplayID, inline = False)
 		await ctx.send(embed = myEmbed)
+	
+	#Gives Rep to player
+	@commands.command(aliases = ["rep", "addrep", "repplayer", "giverep"])
+	@checkCorrectChannel(channelIDList=completeChannelList)
+	async def giveRep(self, ctx, player:discord.Member):
+		
+		if ctx.author == player:
+			await ctx.send(embed = discord.Embed(
+				description = f"{cross_mark}**You cannot give reputation to yourself.**",
+				color = 0xFF0000
+				)
+			)
+			return
+
+		dbCol.update_one({"discID": ctx.author.id}, { '$set': {"rep": player.id}})
+		
+		repEmbed = discord.Embed(title = "Added reputation!", 
+                                                description = f"You are now repping <@{player.id}>. Remember, you can only rep one player at a time.",
+                                                color = embedSideColor)
+		repEmbed.set_footer(text = "Use this command again to rep someone else!", icon_url = footerIcoURL)
+		await ctx.send(embed = repEmbed)
+		#print(opResult)
+
+
+	
+	@giveRep.error
+	async def giveRep_error(self, ctx, error):
+		if isinstance(error, commands.MissingRequiredArgument):
+			await ctx.send('Usage: .rep <@discordID>')
+
+	#Gets Reputation Leaderboards
+	@commands.command(aliases = ["repList", "replb", "reputationlb", "rplb"])
+	@checkCorrectChannel(channelIDList=completeChannelList)
+	@commands.has_any_role(adminRole)
+	async def repLeaderboard(self, ctx,):
+
+		lbCursor = getRepList()		#Pymongo cursor of all players with reps > 0
+
+		embedString = ""
+		tempCounter = 0
+		for player in lbCursor:
+			
+			tempCounter += 1
+
+			embedString += f"{tempCounter}. <@{player['_id']}> - **{player['count']}**\n"
+
+		lbEmbed = discord.Embed(title = "Reputation Leaderboards", color = embedSideColor)
+		lbEmbed.add_field(name = f"Top 10 Reputed", value = embedString)
+		lbEmbed.set_footer(text = "Use .rep @player to rep someone!", icon_url = footerIcoURL)
+		lbEmbed.set_thumbnail(url = thumbnailURL)
+
+		await ctx.send(embed = lbEmbed)	
+		
+
 
 def getUserRank(discID):
 	rankCursor = dbCol.aggregate([
@@ -348,6 +404,37 @@ def getUserRank(discID):
 	globalRank = cursorObjects[0]['globalRank'] + 1
 
 	return globalRank
+
+
+def getRepList():		#Returns a sorted pymongo cursor of top X reputed players
+	
+	mongoCursor = dbCol.aggregate([
+    {
+        "$group": {
+            "_id":"$rep", 
+            "count": {"$sum":1}
+        }
+    }, {
+        "$match" : {
+            '_id' : {"$gt" : 1}
+        }
+    },  {
+        '$sort': {
+            'count' : pymongo.DESCENDING
+        }
+    }, {
+		'$limit' : 10
+	}
+	])
+
+	#returnDict = {}
+	#for x in mongoCursor:
+	#	returnDict[x["_id"]] = x["count"]
+	
+	return mongoCursor
+	
+
+
 
 def setup(client):
 	client.add_cog(Users(client))

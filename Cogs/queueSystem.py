@@ -23,7 +23,7 @@ from itertools import combinations
 mongoCredURL = environ["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
 db = myclient["SAR6C_DB"]
-#db = myclient["TM_DB"]
+db = myclient["TM_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
@@ -59,7 +59,7 @@ with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
 
-playersPerLobby = 10                                        #Cannot be odd number
+playersPerLobby = 2                                        #Cannot be odd number
 myGuildID = discServInfo["guildID"]                         #Used later to get myGuild
 myGuild = None                                              #Guild for which Bot is run
 voiceChannelCategoryID = discServInfo["vcCategoryID"]       #Used later to get voiceChannelCategory
@@ -91,6 +91,8 @@ MAP_POOL = ["Villa", "Clubhouse", "Oregon", "Coastline", "Consulate", "Kafe", "C
 K_VAL = 75                  #K value for awarding Elo change based on Expected Win Probability
 EXPO_VAL = 3500             #400 value for calculating Expected Win Probability
 MIN_ELO_CHANGE = 10         #minmium ELO change possible
+WIN_MULTI = 1.2
+LOSS_MULTI = 1.0
 
 #Message Links
 LOBBY_SETTINGS = "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184"
@@ -1511,13 +1513,17 @@ def generateMatchID():
     matchID = ''.join(secrets.choice(alphabet) for i in range(8))
     return matchID
 
-def getChangeDict(matchDict, winningTeam, losingTeam, setELO):
+def getChangeDict(matchDict, winningTeam, losingTeam, setELO, unfairGame=False):
 
     if setELO:
         convFactor = 1
     else:
         convFactor = -1
 
+    if unfairGame:
+        unfairMULTI = 1.1
+    else:
+        unfairMULTI = 1
 
     winTeamDict = {}
     lossTeamDict = {}
@@ -1536,9 +1542,9 @@ def getChangeDict(matchDict, winningTeam, losingTeam, setELO):
 
 
     for playerID in newWinTeamDict:
-        winTeamChange[playerID] = convFactor*(newWinTeamDict[playerID] - winTeamDict[playerID])
+        winTeamChange[playerID] = int(convFactor*WIN_MULTI*(newWinTeamDict[playerID] - winTeamDict[playerID]))
     for playerID in newLossTeamDict:
-        lossTeamChange[playerID] = convFactor*(newLossTeamDict[playerID] - lossTeamDict[playerID])
+        lossTeamChange[playerID] = int(convFactor*LOSS_MULTI*(newLossTeamDict[playerID] - lossTeamDict[playerID]))
 
     return winTeamChange, lossTeamChange
 
