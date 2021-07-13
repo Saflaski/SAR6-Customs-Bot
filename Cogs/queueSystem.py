@@ -53,7 +53,7 @@ CRPS = []
 
 ##Discord Values##
 
-lastLobbyUpdateMsg = object
+#lastLobbyUpdateMsg = object    #No longer needed
 
 with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
@@ -93,6 +93,17 @@ EXPO_VAL = 3500             #400 value for calculating Expected Win Probability
 MIN_ELO_CHANGE = 10         #minmium ELO change possible
 WIN_MULTI = 1.2
 LOSS_MULTI = 1.0
+UNFAIR_WIN_MULTI = 1.2
+UNFAIR_LOSS_MULTI = 0.9
+
+#Not used
+UNFAIR_ELO_MULTI = {    #[WinTeamELO, LossTeamElo]
+                    
+                    "UW": [1.1, 1.1],        #The unfair team won
+                    "UL": [0.9, 0.9],        #The unfair team lost
+
+
+                    }
 
 #Message Links
 LOBBY_SETTINGS = "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184"
@@ -630,16 +641,17 @@ class QueueSystem(commands.Cog):
         currentMatchScore = matchDoc["score"]
         teamAList = matchDoc["matchList"][:playersPerLobby//2]
         teamBList = matchDoc["matchList"][playersPerLobby//2:]
+        unfairPre = matchDoc["unfair"]                          #To check if last elo updation was for unfair mode or not
         matchDict = ongMatchFileOps("R", matchID)
         curTeamResult = checkCorrectScore(currentMatchScore)        #Parse the old match score
 
         if currentMatchScore != "C-C" and currentMatchScore != "0-0":
             if curTeamResult[1] > curTeamResult[2]:
                 #Team A won
-                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False)
+                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False, unfairPre)
             else:
                 #Team B won
-                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
+                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False, unfairPre)
 
             #Revert Player Elos in Database
             revRequests = []
@@ -658,10 +670,11 @@ class QueueSystem(commands.Cog):
             WLUpdateResult = dbCol.bulk_write(WLUpdate)
             fString += f"Reverted Elo: {revOpResult.modified_count}. Modified W/L: {WLUpdateResult.modified_count}. "
 
-        #Update Match Score in Database
+        #Update Match Score and reset disadvantage modifier in Database
 
         if matchDoc is not None:
             matchesCol.update({"MID" : matchID},{"$set" : {"score" : "C-C"}})
+            matchesCol.update({"MID" : matchID},{"$set" : {"unfair" : 'N'}})
             fString += "Updated score to C-C. "
 
         #Remove the matchID from PIOM
@@ -737,9 +750,13 @@ class QueueSystem(commands.Cog):
 
     @commands.has_any_role(adminRole)
     @commands.command(name = "forceresult")
-    async def forceAddResult(self, ctx, matchID, score):
+    async def forceAddResult(self, ctx, matchID, score, unfairPost = "N"):
         global GVC
         global PIOM
+
+        #If unfairPost == W, then the winning team played at a disadvantage
+        #and if it's L, then the losing team played at a disadvantage
+        #and if it's none or N, then none of the teams played at a disadvantage compared to the other one
 
         #Verify the score given
         #Check if the match is still going on
@@ -754,13 +771,18 @@ class QueueSystem(commands.Cog):
         teamResult = checkCorrectScore(score)
 
         if "incorrect" in teamResult:
-            await ctx.send("Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`")
+            await ctx.send("Invalid usage or incorrect score, try: `.forceresult matchID #-#` ,Eg.: `.forceresult SYv9hbKg 7-5`")
             print(f"{ctx.author} tried invalid match result code")
             return None
-
         else:
             print(f"{ctx.author} used forceresult with correct match score")
 
+        if unfairPost not in ['W', 'L', 'N']:
+            await ctx.send("Invalid usage or incorrect unfair setting, try: `.forceresult matchID #-# W/L/N` ,Eg.: `.forceresult SYv9hbKg 7-5 W`")
+            print(f"{ctx.author} tried invalid match result code")
+            return None
+        else:
+            pass
 
         matchDoc = matchesCol.find_one({"MID" : matchID})
         MID = ""    #Match ID
@@ -770,11 +792,13 @@ class QueueSystem(commands.Cog):
         teamAList = []
         teamBList = []
 
+
         if matchDoc is not None:
             MID = matchDoc["MID"]
             teamAList = matchDoc["matchList"][:playersPerLobby//2]
             teamBList = matchDoc["matchList"][playersPerLobby//2:]
             currentMatchScore = matchDoc["score"]
+            unfairPre = matchDoc["unfair"]                          #To check if last elo updation was for unfair mode or not
             teamACaptain = teamAList[0]
             teamBCaptain = teamBList[0]
 
@@ -802,13 +826,16 @@ class QueueSystem(commands.Cog):
         winCapt = await self.client.fetch_user(winCaptID)
         lossCapt = await self.client.fetch_user(lossCaptID)
 
+        #Check which team was at disadvantage
+        
+
 
 
         print(f"Sending Match Result Confirmed (ADMIN) Panel:{MID} ")
 
         matchDict = ongMatchFileOps("R", MID)
 
-        winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True)
+        winTeamChange, lossTeamChange = getChangeDict(matchDict, winningTeam, losingTeam, True, unfairPost)
 
 
         try:
@@ -831,12 +858,13 @@ class QueueSystem(commands.Cog):
             #Get appropriate Elo changes to 'revert' everyone's Elos according to pre-match Elos
             curTeamResult = checkCorrectScore(currentMatchScore)        #Parse the old match score
 
+            
             if curTeamResult[1] > curTeamResult[2]:
                 #Team A won
-                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False)
+                curWinChange, curLossChange = getChangeDict(matchDict, teamAList, teamBList, False, unfairPre)
             else:
                 #Team B won
-                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False)
+                curWinChange, curLossChange = getChangeDict(matchDict, teamBList, teamAList, False, unfairPre)
 
             #Revert Player Elos in Database
             revRequests = []
@@ -876,7 +904,10 @@ class QueueSystem(commands.Cog):
         (f"Updated DB for score: {match_score}")
         fString += "Updated Database for Score. "
 
-
+        #Update Unfair setting
+        if unfairPost != "N":
+            matchesCol.update({"MID" : MID},{"$set" : {"unfair" : unfairPost}})
+            fString += "Updated disadvantage modifier. "
 
         #Remove the matchID from PIOM
         if MID in PIOM:
@@ -1513,15 +1544,24 @@ def generateMatchID():
     matchID = ''.join(secrets.choice(alphabet) for i in range(8))
     return matchID
 
-def getChangeDict(matchDict, winningTeam, losingTeam, setELO, unfairGame=False):
+def getChangeDict(matchDict, winningTeam, losingTeam, setELO, unfairGame="N"):
 
+    #setELO if -1, gives the negative of the elo to be set. Effectively used to reverse the elo
     if setELO:
         convFactor = 1
     else:
         convFactor = -1
 
-    if unfairGame:
-        unfairMULTI = 1.1
+    #Unfair Games
+    """
+    If it's an unfair game, 
+    W = Winning team won at disadvantage
+    L = Losing team lost at a disadvantage
+    """
+    if unfairGame == "W":
+        unfairMULTI = UNFAIR_WIN_MULTI
+    elif unfairGame == "L":
+        unfairMULTI = UNFAIR_LOSS_MULTI
     else:
         unfairMULTI = 1
 
@@ -1542,9 +1582,9 @@ def getChangeDict(matchDict, winningTeam, losingTeam, setELO, unfairGame=False):
 
 
     for playerID in newWinTeamDict:
-        winTeamChange[playerID] = int(convFactor*WIN_MULTI*(newWinTeamDict[playerID] - winTeamDict[playerID]))
+        winTeamChange[playerID] = int(convFactor*unfairMULTI*WIN_MULTI*(newWinTeamDict[playerID] - winTeamDict[playerID]))
     for playerID in newLossTeamDict:
-        lossTeamChange[playerID] = int(convFactor*LOSS_MULTI*(newLossTeamDict[playerID] - lossTeamDict[playerID]))
+        lossTeamChange[playerID] = int(convFactor*unfairMULTI*LOSS_MULTI*(newLossTeamDict[playerID] - lossTeamDict[playerID]))
 
     return winTeamChange, lossTeamChange
 
@@ -1965,7 +2005,7 @@ def generateTeams(matchID, pList):
     for player in fullLobbyList:
         OrigELOList.append(lobbyDic[player])
 
-    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList, "DT" : curDT, "origElo" : OrigELOList})
+    matchesCol.insert_one({"MID" : matchID, "score" : "0-0", "matchList" : fullLobbyList, "DT" : curDT, "origElo" : OrigELOList, "unfair": 'N'})
     print(f"Uploaded Generated Match: {matchID}")
 
     STAT_MG += 1
