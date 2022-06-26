@@ -15,15 +15,20 @@ db = myclient["SAR6C_DB"]
 #db = myclient["TM_DB"]
 dbCol = db["users_col"]
 
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+discordMessageText = discServInfo["messages"]
+
 #Global Variables
 baseELO = 2000
 autoLBrefresh = 20
 
 #For embed messages
 embedSideColor = 0xFAAF41
-footerText = "SAR6C Leaderboards - Only author can flip pages | Use .h for help!"
-thumbnailURL= "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
-footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+footerText = discordMessageText["leaderboardMessages"]["footerText"]
+thumbnailURL= discServInfo["logoURLs"]["thumbnailURL"]
+footerIcoURL = discServInfo["logoURLs"]["footerURL"]
 
 #Unicode reaction emojis
 left_arrow = '\u23EA'
@@ -40,6 +45,10 @@ leaderBoardTC = discTextChannels["fullrankings"]
 autoLeaderboardTC = discTextChannels["autoLB"]
 autoLeaderboardMessage = None
 autoLBInfoChannel = None
+
+#importedCommandsAliasList
+commandsList = discServInfo["commandNames"]
+lbCommand = commandsList["leaderboard"]
 
 class Leaderboard(commands.Cog):
 	def __init__(self, client):
@@ -60,7 +69,7 @@ class Leaderboard(commands.Cog):
 				return False
 		return commands.check(function_wrapper)
 
-	@commands.command(aliases = ["leaderboard", "leaderboards"])
+	@commands.command(aliases = [lbCommand,"lb"])
 	@commands.guild_only()
 	@checkCorrectChannel(channelID = leaderBoardTC)
 	async def lb(self, ctx, myPos = None):
@@ -118,7 +127,7 @@ class Leaderboard(commands.Cog):
 
 
 			#Generate Embed Object
-			myEmbed = discord.Embed(title = "Leaderboards", color = embedSideColor)
+			myEmbed = discord.Embed(title = discordMessageText["leaderboardMessages"]["leaderboardTitle"], color = embedSideColor)
 			myEmbed.add_field(name = f"Tier 1 ({currentPage}/{totalPages})", value = embedContentString)
 			myEmbed.set_footer(text = footerText, icon_url = footerIcoURL)
 			myEmbed.set_thumbnail(url = thumbnailURL)
@@ -207,8 +216,8 @@ class Leaderboard(commands.Cog):
 			#Send Info
 			with open("commands.txt") as f:
 				commandsTextFile = f.read()
-			infoEmbed = discord.Embed(title = "Help Commands", description = commandsTextFile, color = embedSideColor)
-			infoEmbed.set_footer(text = "Current Commands", icon_url = footerIcoURL)
+			infoEmbed = discord.Embed(title = discordMessageText["infoMessages"]["infoTitle"], description = commandsTextFile, color = embedSideColor)
+			infoEmbed.set_footer(text = discordMessageText["infoMessages"]["infoFooter"], icon_url = footerIcoURL)
 			infoEmbed.set_thumbnail(url = thumbnailURL)
 			await autoLBInfoChannel.send(embed = infoEmbed)
 
@@ -243,7 +252,7 @@ def getAutoLBEmbed():
 
 
 	#Generate Embed Object
-	myEmbed = discord.Embed(title = "Auto Leaderboard - Top 20", color = embedSideColor, description = embedContentString)
+	myEmbed = discord.Embed(title = discordMessageText["leaderboardMessages"]["autoLeaderboardTitle"], color = embedSideColor, description = embedContentString)
 	myEmbed.set_footer(text = f"Refreshes every {autoLBrefresh} seconds", icon_url = footerIcoURL)
 	myEmbed.set_thumbnail(url = thumbnailURL)
 

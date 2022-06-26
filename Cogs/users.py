@@ -14,20 +14,24 @@ db = myclient["SAR6C_DB"]
 dbCol = db["users_col"]
 matchesCol = db["matches_col"]
 
+#Setting up serverconfig
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+discordMessageTexts = discServInfo["messages"]
+
+
 #Global Variables
 baseELO = 2000
 embedSideColor = 0xFAAF41
 embedTitleColor = 0xF64C72
-footerText = "SAR6C | Use .h for help!"
-footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
-thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+footerText = discServInfo["messages"]["queueSystemMessages"]["footerTextHelp"]
+thumbnailURL= discServInfo["logoURLs"]["thumbnailURL"]
+footerIcoURL = discServInfo["logoURLs"]["footerURL"]
 
 #Global variables
 playersPerLobby = 10
 
-#Discord Values
-with open("ServerInfo.json") as jsonFile:
-    discServInfo = json.load(jsonFile)
 
 discTextChannels = discServInfo["TextChannels"]
 infoRegTC = discTextChannels["helpRegInfo"]
@@ -37,8 +41,15 @@ adminTC = discTextChannels["admin"]
 ticketsTC = discTextChannels["tickets"]
 completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC, queueTC]
 #Roles
-adminRole = "R6C Admin"
-userRole = "R6C"
+adminRole = discServInfo["adminRole"]
+userRole = discServInfo["userRole"]
+
+#importedCommandsAliasList
+commandsList = discServInfo["commandNames"]
+regCommand = commandsList["register"]
+infoCommand = commandsList["info"]
+forceRegisterCommand = commandsList["forceRegister"]
+updateUplayCommand = commandsList["updateUplay"]
 
 
 class Users(commands.Cog):
@@ -61,7 +72,7 @@ class Users(commands.Cog):
 		return commands.check(function_wrapper)
 
 	#Register user
-	@commands.command(name = "register")
+	@commands.command(name = regCommand)
 	@commands.guild_only()
 	@checkCorrectChannel(channelID = infoRegTC)
 	async def registerUser(self, ctx, uplayIGN):
@@ -97,7 +108,7 @@ class Users(commands.Cog):
 
 
 				#quickStartCh = self.client.fetch_channel(quickStartTC)
-				dmEmbed = discord.Embed(title = "Welcome to SAR6 Customs", 
+				dmEmbed = discord.Embed(title = "Welcome", 
                                                 description = f"Click <#{quickStartTC}> to know the commands and how to get started",
                                                 color = embedSideColor)
 				dmEmbed.set_thumbnail(url = thumbnailURL)
@@ -116,7 +127,7 @@ class Users(commands.Cog):
 
 
 
-	@commands.command(name = "info")
+	@commands.command(name = infoCommand)
 	@commands.guild_only()
 	@checkCorrectChannel(channelIDList = completeChannelList)
 	async def getUserInfo(self, ctx, givenUser : discord.Member = None):
@@ -246,7 +257,7 @@ class Users(commands.Cog):
 			print(error)
 
 	#Forceregister is basically the same as .register except only for high-permission users/admins
-	@commands.command(name = "forceregister")
+	@commands.command(name = forceRegisterCommand)
 	@commands.has_any_role(adminRole)
 	async def forceRegister(self, ctx, member: discord.Member, uplayIGN, startingELO = baseELO):
 
@@ -280,7 +291,7 @@ class Users(commands.Cog):
 
 
 	#Updates Uplay ID
-	@commands.command(aliases = ["updateUplay", "uUplay", "updateuplay", "uuplay"])
+	@commands.command(name=updateUplayCommand)
 	@checkCorrectChannel(channelID = infoRegTC)
 	async def update_Uplay(self, ctx, newUplayID):
 

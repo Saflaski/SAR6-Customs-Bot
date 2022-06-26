@@ -1,5 +1,5 @@
 {
-  "serverName" : "SAR6C",
+  "serverName" : "The server name",
   "guildID" : 302692676099112960,
   "vcCategoryID" : 822346018598420490,
   "TextChannels" : { 
@@ -14,5 +14,124 @@
     "tickets" : 831643411606011964,
     "admin" : 828962513819140107
   },
-  "TicketCategory": 838833901853999105
+  "roleNames" : {
+    "adminRole" : "R6C Admin",
+    "userRole" : "R6C"
+  },
+  "commandNames" : {
+    "register" : "register*",
+    "info" : "info*",
+    "forceRegister" : "forceregister*",
+    "updateUplay" : "updateUplay*",
+    "leaderboard" : "leaderboard*",
+    "joinQueue" : "jq*",
+    "leaveQueue" : "lq*",
+    "showGlobalQueue" : "showglobalq*",
+    "showQueue" : "showq*",
+    "getCurrentPlayerMatch" : "playerMatch*",
+    "showMatch" : "showMatch*",
+    "showAllOngoingMatches" : "showongoing*",
+    "setElo" : "setElo*",
+    "changeElo" : "changeElo*",
+    "cancelMatch" : "cancelMatch*",
+    "freeGlobalQueue" : "freeglobal*",
+    "removePlayerFromGlobalQueue" : "removeplayer*",
+    "forceResultMatch" : "forceresult*",
+    "enterMatchResult" : "result*"
+
+  },
+  "messages" : {
+    "leaderboardMessages" : {
+        "footerText" : "Footer text at the bottom of leaderboard",
+        "leaderboardTitle" : "Leaderboards",
+        "autoLeaderboardTitle" : "Auto Leaderboard - Top 20"
+
+    },
+    "infoMessages" : {
+        "infoTitle" : "Help Commands",
+        "infoFooter" : "Current Commands"
+    },
+    "queueSystemMessages" : {
+      "footerTextHelp" : "SAR6C | Use .h for help!",
+      "queueCommandHelpText" : "Use .joinq to join | .leaveq to leave | .info for info",
+      "pleaseRegisterFirst" : "Please register first using .register",
+      "youAreAlreadyInQueue" : "You are already in queue",
+      "youAreAlreadyInMatch" : "You are already in a match",
+      "playerJoined" : "Player Joined",
+      "YouAreNowInQueue" : "You are now in queue ",
+      "currentQueue" : "Current Queue: ",
+      "inadequateRole" : "Inadequate Role",
+      "globalQueue" : "Global Queue",
+      "queueList" : "Queue List: ",
+      "playersInQueue0" : "Players In Queue: 0",
+      "youWereRemoved" : "You were removed from queue",
+      "playerLeft" : "Player Left",
+      "youWerentInQueue" : "You were not in queue",
+      "memberNotInMatch" : "Member not found",
+      "matchNotFound" : "Match not found",
+      "ongoingMatches" : "Ongoing Matches",
+      "ID" : "ID",
+      "Score" : "Score",
+      "A" : "A",
+      "B" : "B",
+      "Map" : "Map",
+      "Match" : "Match",
+      "Generated" : "Generated",
+      "generatedAt" : "Generated at",
+      "timezone" : "UTC",
+      "teamA" : "Team A",
+      "teamB" : "Team B",
+      "team" : "Team",
+      "mostRecentAtTop" :"Most Recent matches at the top",
+      "None" : "None",
+      "User not found" : "User not found",
+      "Succesfully set ELO" : "Succesfully set ELO",
+      "Cleared Global Queue" : "Cleared Global Queue",
+      "Removed {member} from Global Queue" : "Removed {member} from Global Queue",
+      "Captains" : "Captains",
+      "Captain" : "Captain",
+      "deny/confirm previous Match Panel" : "Please deny/confirm previous match result panel",
+      "you arent in an ongoing match" : "You aren't in an ongoing match",
+      "invalidMatchResultEntry" : "Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`",
+      "resultDenied" : "Result denied by Captain",
+      "resultAccepted" : "Result accepted by",
+      "awaiting opponent" : "awaiting opponent",
+      "players in queue" : "players in queue",
+      "Map Ban Result" : "Map Ban Result",
+      "Match Result Update Pending:" : "Match Result Update Pending",
+      "Captains, react with" : "Captains, react with",
+      "to confirm," : "to confirm,",
+      "to cancel" : "to cancel",
+      "fullBanInstruction" : "Captains, react with given emoji to BAN the corresponding map",
+      "Match Result Confirmed" : "Match Result Confirmed",
+      "Results confirmed" : "Results confirmed",
+      "Given Score" : "Given Score"
+
+
+
+
+
+
+    },
+    "userSystemMessages" : {
+
+    }
+  },
+  "logoURLs" : {
+    "thumbnailURL" : "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png",
+    "footerURL" : "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+  },
+  
+  "lobby_settings" : "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184",
+
+  "mapList" : [
+    "Bank",
+    "Chalet",
+    "Clubhouse",
+    "Coastline",
+    "Kafe",
+    "Oregon",
+    "Villa"
+  ],
+  "timezoneActual" : "Asia/Kolkata"
 }
