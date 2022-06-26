@@ -19,17 +19,20 @@ from os import environ
 from discord.ext import commands, tasks
 from itertools import combinations
 
-
-#settingup MongoDB
-mongoCredURL = environ["MONGODB_PASS"]
-myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["SAR6C_DB"]
-#db = myclient["TM_DB"]
-dbCol = db["users_col"]
-matchesCol = db["matches_col"]
-
 with open("ServerInfo.json") as jsonFile:
 	discServInfo = json.load(jsonFile)
+
+with open("mainconfig.json") as configFile:
+	mainConfig = json.load(configFile)
+
+#settingup MongoDB
+mongoCredURL = mainConfig["MONGODB_PASS"]
+myclient = pymongo.MongoClient(mongoCredURL)
+db = myclient[discServInfo["MongoDB Database"]]
+#db = myclient["TM_DB"]
+dbCol = db[discServInfo["MongoDB usersCol"]]
+matchesCol = db["MongoDB matchesCol"]
+
 
 discordMessageTexts = discServInfo["messages"]
 queueSystemMessages = discordMessageTexts["queueSystemMessages"]
@@ -79,7 +82,6 @@ queueTC = discTextChannels["queue"]
 matchGenTC = discTextChannels["matchGen"]
 postMatchTC = discTextChannels["postMatch"]
 adminTC = discTextChannels["admin"]
-ticketTCCategory = discServInfo["TicketCategory"]
 completeChannelList = [helpRegInfoLbTC, queueTC, matchGenTC, postMatchTC, adminTC]
 
 #Roles
@@ -158,7 +160,7 @@ class QueueSystem(commands.Cog):
 		def function_wrapper(ctx):
 			givenChannelID = ctx.message.channel.id
 			givenChannelCategory = ctx.message.channel.category_id
-			if givenChannelID in channelIDList or givenChannelID == channelID or givenChannelCategory == ticketTCCategory:
+			if givenChannelID in channelIDList or givenChannelID == channelID:
 				return True
 			else:
 				return False
@@ -177,28 +179,33 @@ class QueueSystem(commands.Cog):
 		#Adds user to the queue
 		member = ctx.author
 		discID = member.id
-
+		print("Used queue command")
 
 		userDoc = dbCol.find({"discID" : discID})
+		print("Searched mongoDB")
 		if userDoc.count() == 0:
+			print("We here 1.2")
 			queueEmbed = discord.Embed(description = queueSystemMessages["pleaseRegisterFirst"], color = embedSideColor)
 			await ctx.send(embed = queueEmbed)
 			print(f"Unregistered user {member} tried to join Global Queue")
+			
 			return None
-
+		
 		elif discID in GQL:
+			print("We here 1.5")
 			queueEmbed = discord.Embed(description = queueSystemMessages["youAreAlreadyInQueue"], color = embedSideColor)
 			alrQueueMsg = await ctx.send(content = f"<@{discID}>", embed = queueEmbed)
-			await alrQueueMsg.delete(delay = 2)
-			await ctx.message.delete(delay = 2)
+			#await alrQueueMsg.delete(delay = 2)
+			#await ctx.message.delete(delay = 2)
+			
 			return None
-
+		print("We here")
 		for match in PIOM:
 			if discID in PIOM[match]:
 				queueEmbed = discord.Embed(description = queueSystemMessages["youAreAlreadyInMatch"], color = embedSideColor)
 				await ctx.send(embed = queueEmbed)
 				return None
-
+		print("We here 2")
 		GQL.append(discID)
 		print(f"{member} has joined the Global Queue")
 		STAT_JQ += 1
@@ -211,7 +218,7 @@ class QueueSystem(commands.Cog):
 			await ctx.author.send(embed = dmEmbed)
 		except:
 			print(f"Could not send DM to {ctx.author}")
-
+		print("We herex3")
 		#Send public message
 		publicEmbed = discord.Embed(description = f"{queueSystemMessages['currentQueue']} {len(GQL)}/{playersPerLobby}", colour = embedSideColor)
 		publicEmbed.set_footer(text = JSLfooterText, icon_url = footerIcoURL)
@@ -434,7 +441,7 @@ class QueueSystem(commands.Cog):
 		elif isinstance(error, commands.NoPrivateMessage):
 			pass
 		elif isinstance(error, commands.MissingRequiredArgument):
-			await ctx.send("Usage: `.playermatch <@DiscordID>` ")
+			await ctx.send(queueSystemMessages["ongoingMatchUsage"])
 
 	@commands.has_any_role(userRole, adminRole)
 	@commands.command(name=commandsList["showMatch"])
@@ -515,7 +522,7 @@ class QueueSystem(commands.Cog):
 		elif isinstance(error, commands.NoPrivateMessage):
 			pass
 		elif isinstance(error, commands.MissingRequiredArgument):
-			await ctx.send("Invalid Usage, try: `.getMatch <match ID>`")
+			await ctx.send(queueSystemMessages["invalidShowMatchUsage"])
 
 
 	@commands.command(name=commandsList["showAllOngoingMatches"])
@@ -604,7 +611,7 @@ class QueueSystem(commands.Cog):
 	@changeELO.error
 	async def changeELO_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-			await ctx.send("Invalid Usage, try: `.changeELO <@discord ID> <±ELO>`")
+			await ctx.send(queueSystemMessages["invalidChangeEloUsage"])
 		elif isinstance(error, commands.MissingAnyRole):
 			await ctx.send(embed = discord.Embed(description = queueSystemMessages['inadequateRole']))
 		elif isinstance(error, commands.NoPrivateMessage):
@@ -698,7 +705,7 @@ class QueueSystem(commands.Cog):
 	@cancelMatch.error
 	async def cancelMatch_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-			await ctx.send("Invalid Usage, try: `.cancelmatch <match ID>`")
+			await ctx.send(queueSystemMessages["invalidCancelMatchUsage"])
 		elif isinstance(error, commands.MissingAnyRole):
 			await ctx.send(embed = discord.Embed(description = queueSystemMessages['inadequateRole']))
 		elif isinstance(error, commands.NoPrivateMessage):
@@ -733,7 +740,7 @@ class QueueSystem(commands.Cog):
 	@remFromQueue.error
 	async def remFromQueue_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-			await ctx.send("Invalid Usage, try: `.removeplayer <@discord ID>`")
+			await ctx.send(queueSystemMessages["invalidRemoveQueueUsage"])
 		elif isinstance(error, commands.MissingAnyRole):
 			await ctx.send(embed = discord.Embed(description = queueSystemMessages['inadequateRole']))
 		elif isinstance(error, commands.NoPrivateMessage):
@@ -906,7 +913,7 @@ class QueueSystem(commands.Cog):
 	@forceAddResult.error
 	async def forceAddResult_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-			await ctx.send("Invalid Usage, try: `.forceresult <match ID> <score>`")
+			await ctx.send(queueSystemMessages["invalidForceResultUsage"])
 		elif isinstance(error, commands.MissingAnyRole):
 			await ctx.send(embed = discord.Embed(description = queueSystemMessages['inadequateRole']))
 		elif isinstance(error, commands.NoPrivateMessage):
@@ -1184,7 +1191,7 @@ class QueueSystem(commands.Cog):
 	@addManualResult.error
 	async def addManualResult_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-			await ctx.send(queueSystemMessages["invalidMatchResultEntry"])
+			await ctx.send(queueSystemMessages["invalidMatchResultEntryUsage"])
 		elif isinstance(error, commands.MissingAnyRole):
 			await ctx.send(embed = discord.Embed(description = queueSystemMessages['inadequateRole']))
 		elif isinstance(error, commands.NoPrivateMessage):
@@ -1908,7 +1915,7 @@ def generateTeams(matchID, pList):
 	#Building Dictionaries
 	for x in playerDocs:
 		lobbyDic[x["discID"]] = x["ELO"]
-		embedDictionary[x["discID"]] = [ x["discName"] , x["ELO"], x["uplayIGN"] ]
+		embedDictionary[x["discID"]] = [ x["discName"] , x["ELO"], x["ign"] ]
 
 	fileOpsResult = ongMatchFileOps("W", matchID, lobbyDic)
 	if fileOpsResult == "Written":

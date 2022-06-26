@@ -1,43 +1,46 @@
 {
+  "MongoDB Database" : "LANGDB",
+  "MongoDB usersCol" : "usersCol",
+  "MongoDB matchesCol" : "matchesCol",
+
   "serverName" : "The server name",
-  "guildID" : 302692676099112960,
-  "vcCategoryID" : 822346018598420490,
+  "guildID" : 990715393620475924,
+  "vcCategoryID" : 990715394237034517,
   "TextChannels" : { 
-    "helpRegInfo" : 834318082163474432,
-    "quickstart" : 825059186592710726,
-    "fullrankings" : 835807804371238922,
-    "queue" : 834318200392646656,
-    "matchGen" : 834320050093424641,
-    "postMatch" : 822347459811344394,
-    "autoLB" : 822784280387518504,
+    "helpRegInfo" : 990725167045017603,
+    "quickstart" : 990725167045017603,
+    "fullrankings" : 990725167045017603,
+    "queue" : 990729231019417670,
+    "matchGen" : 990725167045017603,
+    "postMatch" : 990725167045017603,
+    "autoLB" : 990725303913545740,
     "help" : 822347547338604544,
-    "tickets" : 831643411606011964,
-    "admin" : 828962513819140107
+    "admin" : 990725167045017603
   },
   "roleNames" : {
-    "adminRole" : "R6C Admin",
-    "userRole" : "R6C"
+    "adminRole" : "adminRole",
+    "userRole" : "userRole"
   },
   "commandNames" : {
-    "register" : "register*",
-    "info" : "info*",
-    "forceRegister" : "forceregister*",
-    "updateUplay" : "updateUplay*",
-    "leaderboard" : "leaderboard*",
-    "joinQueue" : "jq*",
-    "leaveQueue" : "lq*",
-    "showGlobalQueue" : "showglobalq*",
-    "showQueue" : "showq*",
-    "getCurrentPlayerMatch" : "playerMatch*",
-    "showMatch" : "showMatch*",
-    "showAllOngoingMatches" : "showongoing*",
-    "setElo" : "setElo*",
-    "changeElo" : "changeElo*",
-    "cancelMatch" : "cancelMatch*",
-    "freeGlobalQueue" : "freeglobal*",
-    "removePlayerFromGlobalQueue" : "removeplayer*",
-    "forceResultMatch" : "forceresult*",
-    "enterMatchResult" : "result*"
+    "register" : "register",
+    "info" : "info",
+    "forceRegister" : "forceregister",
+    "updateGameName" : "updateGameName",
+    "leaderboard" : "leaderboard",
+    "joinQueue" : "joinq",
+    "leaveQueue" : "leaveq",
+    "showGlobalQueue" : "showglobalq",
+    "showQueue" : "showq",
+    "getCurrentPlayerMatch" : "playerMatch",
+    "showMatch" : "showMatch",
+    "showAllOngoingMatches" : "showongoing",
+    "setElo" : "setElo",
+    "changeElo" : "changeElo",
+    "cancelMatch" : "cancelMatch",
+    "freeGlobalQueue" : "freeglobal",
+    "removePlayerFromGlobalQueue" : "removeplayer",
+    "forceResultMatch" : "forceresult",
+    "enterMatchResult" : "result"
 
   },
   "messages" : {
@@ -92,7 +95,6 @@
       "Captain" : "Captain",
       "deny/confirm previous Match Panel" : "Please deny/confirm previous match result panel",
       "you arent in an ongoing match" : "You aren't in an ongoing match",
-      "invalidMatchResultEntry" : "Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`",
       "resultDenied" : "Result denied by Captain",
       "resultAccepted" : "Result accepted by",
       "awaiting opponent" : "awaiting opponent",
@@ -105,15 +107,35 @@
       "fullBanInstruction" : "Captains, react with given emoji to BAN the corresponding map",
       "Match Result Confirmed" : "Match Result Confirmed",
       "Results confirmed" : "Results confirmed",
-      "Given Score" : "Given Score"
-
-
+      "Given Score" : "Given Score",
+      "ongoingMatchUsage" : "Usage: `.playermatch <@DiscordID>` ",
+      "invalidShowMatchUsage" : "Invalid Usage, try: `.getMatch <match ID>`",
+      "invalidChangeEloUsage" : "Invalid Usage, try: `.changeELO <@discord ID> <±ELO>`",
+      "invalidCancelMatchUsage" : "Invalid Usage, try: `.cancelmatch <match ID>`",
+      "invalidRemoveQueueUsage" : "Invalid Usage, try: `.removeplayer <@discord ID>`",
+      "invalidMatchResultEntryUsage" : "Invalid usage or incorrect score, try: `.result #-#` ,Eg.: `.result 7-5`",
+      "invalidForceResultUsage" : "Invalid Usage, try: `.forceresult <match ID> <score>`"
 
 
 
 
     },
     "userSystemMessages" : {
+      "Welcome" : "Welcome",
+      "isAlreadyRegistered" : "is already registered!\nUse update game id command to change gameid.",
+      "getStarted" : "Click to know the commands and get started",
+      "registerError" : "Usage: '.register <In game Username>' Eg. '.register F.lanker' ",
+      "User not found" : "User not found",
+      "Wins" : "Wins",
+      "Matches played" : "Matches played",
+      "Win Percentage" : "Win Percentage",
+      "No matches found" : "No matches found",
+      "userInfoError" : "Usage: .info <@DiscordID> | Eg.: .info @Carl",
+      "pleaseRegisterFirst" : "Please register first using `.register`",
+      "Changed Game ID" : "Changed Game ID",
+      "Previous Game ID" : "Previous Game ID:",
+      "Request Game ID" : "Request Game ID:"
+
 
     }
   },

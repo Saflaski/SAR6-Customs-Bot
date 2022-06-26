@@ -8,15 +8,20 @@ import json
 from discord.ext import commands, tasks
 from os import environ
 
-#settingup MongoDB
-mongoCredURL = environ["MONGODB_PASS"]
-myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["SAR6C_DB"]
-#db = myclient["TM_DB"]
-dbCol = db["users_col"]
-
 with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
+
+with open("mainconfig.json") as configFile:
+	mainConfig = json.load(configFile)
+
+#settingup MongoDB
+mongoCredURL = mainConfig["MONGODB_PASS"]
+myclient = pymongo.MongoClient(mongoCredURL)
+db = myclient[discServInfo["MongoDB Database"]]
+#db = myclient["TM_DB"]
+dbCol = db[discServInfo["MongoDB usersCol"]]
+matchesCol = db["MongoDB matchesCol"]
+
 
 discordMessageText = discServInfo["messages"]
 
@@ -69,7 +74,7 @@ class Leaderboard(commands.Cog):
 				return False
 		return commands.check(function_wrapper)
 
-	@commands.command(aliases = [lbCommand,"lb"])
+	@commands.command(aliases = [lbCommand,"leaders"])
 	@commands.guild_only()
 	@checkCorrectChannel(channelID = leaderBoardTC)
 	async def lb(self, ctx, myPos = None):
@@ -121,9 +126,9 @@ class Leaderboard(commands.Cog):
 
 				#To query each doc and append details to the body of Embed Object
 				if x["discID"] == ctx.author.id:			#Make it easier to spot the user
-					embedContentString += f"**{uRank.ljust(4)}** **__{x['discName']}__** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+					embedContentString += f"**{uRank.ljust(4)}** **__{x['discName']}__** | game username: `{x['ign']}` \tELO: `{x['ELO']}`\t\t\n\n"
 				else:
-					embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+					embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | game username: `{x['ign']}` \tELO: `{x['ELO']}`\t\t\n\n"
 
 
 			#Generate Embed Object
@@ -248,7 +253,7 @@ def getAutoLBEmbed():
 			uRank = str(tempCounter) + '.'
 
 		#To query each doc and append details to the body of Embed Object
-		embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | Uplay: `{x['uplayIGN']}` \tELO: `{x['ELO']}`\t\t\n\n"
+		embedContentString += f"{uRank.ljust(4)} **{x['discName']}** | game username: `{x['ign']}` \tELO: `{x['ELO']}`\t\t\n\n"
 
 
 	#Generate Embed Object

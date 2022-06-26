@@ -15,10 +15,19 @@ client = commands.Bot(command_prefix = '.')
 #remove default help
 client.remove_command('help')
 
+#Setting up serverconfig
+with open("ServerInfo.json") as jsonFile:
+    discServInfo = json.load(jsonFile)
+
+with open("mainconfig.json") as configFile:
+	mainConfig = json.load(configFile)
+
+
+
 #Global Variables
-footerText = "SAR6C | Use .h for help!"
-footerIcoURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
-thumbnailURL = "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
+footerText = discServInfo["messages"]["queueSystemMessages"]["footerTextHelp"]
+thumbnailURL= discServInfo["logoURLs"]["thumbnailURL"]
+footerIcoURL = discServInfo["logoURLs"]["footerURL"]
 embedSideColor = 0xFAAF41
 check_mark = '\u2705'
 
@@ -35,14 +44,15 @@ logger.addHandler(handler)
 
 
 #MongoDB setup
-mongoCredURL = environ["MONGODB_PASS"]
+mongoCredURL = mainConfig["MONGODB_PASS"]
 myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["SAR6C_DB"]
+db = myclient[discServInfo["MongoDB Database"]]
 #db = myclient["TM_DB"]
-dbCol = db["users_col"]
+dbCol = db[discServInfo["MongoDB usersCol"]]
+matchesCol = db["MongoDB matchesCol"]
 
 #TOKEN SETUP
-TOKEN = environ["DISCORD_TOKEN"]
+TOKEN = mainConfig["DISCORD_TOKEN"]
 
 #Discord Server Vals
 with open("ServerInfo.json") as jsonFile:

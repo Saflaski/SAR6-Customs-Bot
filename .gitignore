@@ -3,6 +3,7 @@ TOKEN
 ONGOING_MATCHES.txt
 ONGOING_MATCHES
 MONGODB_PASS
+mainconfig.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

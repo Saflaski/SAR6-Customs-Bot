@@ -1,4 +1,6 @@
 import discord
+from matplotlib.style import use
+from psutil import users
 import pymongo
 import datetime
 import re
@@ -6,19 +8,24 @@ import json
 from os import environ
 from discord.ext import commands
 
-#settingup MongoDB
-mongoCredURL = environ["MONGODB_PASS"]
-myclient = pymongo.MongoClient(mongoCredURL)
-db = myclient["SAR6C_DB"]
-#db = myclient["TM_DB"]
-dbCol = db["users_col"]
-matchesCol = db["matches_col"]
-
 #Setting up serverconfig
 with open("ServerInfo.json") as jsonFile:
     discServInfo = json.load(jsonFile)
 
+with open("mainconfig.json") as configFile:
+	mainConfig = json.load(configFile)
+
+#settingup MongoDB
+mongoCredURL = mainConfig["MONGODB_PASS"]
+myclient = pymongo.MongoClient(mongoCredURL)
+db = myclient[discServInfo["MongoDB Database"]]
+#db = myclient["TM_DB"]
+dbCol = db[discServInfo["MongoDB usersCol"]]
+matchesCol = db["MongoDB matchesCol"]
+
+
 discordMessageTexts = discServInfo["messages"]
+userSystemMessages = discServInfo["messages"]["userSystemMessages"]
 
 
 #Global Variables
@@ -38,18 +45,17 @@ infoRegTC = discTextChannels["helpRegInfo"]
 quickStartTC = discTextChannels["quickstart"]
 queueTC = discTextChannels["queue"]
 adminTC = discTextChannels["admin"]
-ticketsTC = discTextChannels["tickets"]
-completeChannelList = [infoRegTC, quickStartTC, adminTC, ticketsTC, queueTC]
+completeChannelList = [infoRegTC, quickStartTC, adminTC, queueTC]
 #Roles
-adminRole = discServInfo["adminRole"]
-userRole = discServInfo["userRole"]
+adminRole = discServInfo["roleNames"]["adminRole"]
+userRole = discServInfo["roleNames"]["userRole"]
 
 #importedCommandsAliasList
 commandsList = discServInfo["commandNames"]
 regCommand = commandsList["register"]
 infoCommand = commandsList["info"]
 forceRegisterCommand = commandsList["forceRegister"]
-updateUplayCommand = commandsList["updateUplay"]
+updateUplayCommand = commandsList["updateGameName"]
 
 
 class Users(commands.Cog):
@@ -89,14 +95,14 @@ class Users(commands.Cog):
 
 		if dbCol.find_one({"discID": author.id}):				#Checks if user is already registered
 			await ctx.send(embed = discord.Embed(
-				description = f'\N{Cross Mark} {author} is already registered!\nUse `.updateuplay newIGN` to change your uplay IGN.',
+				description = f"\N{Cross Mark} {author} {userSystemMessages['isAlreadyRegistered']}",
 				colour = 0xFF0000))
 
 		else:													#If not registered, prepares dictionary for mongodb insert
 			tempDict = 	{	"discID": author.id ,
 							"discName" : f"{str(author)}" ,
 							"dateRegistered" : datetime.datetime.now(),
-							"uplayIGN" : uplayIGN,
+							"ign" : uplayIGN,
 							"ELO" : baseELO,
 							"wins" : 0,
 							"loss" : 0
@@ -108,8 +114,8 @@ class Users(commands.Cog):
 
 
 				#quickStartCh = self.client.fetch_channel(quickStartTC)
-				dmEmbed = discord.Embed(title = "Welcome", 
-                                                description = f"Click <#{quickStartTC}> to know the commands and how to get started",
+				dmEmbed = discord.Embed(title = userSystemMessages["Welcome"], 
+                                                description = f"{userSystemMessages['getStarted']} <#{quickStartTC}>",
                                                 color = embedSideColor)
 				dmEmbed.set_thumbnail(url = thumbnailURL)
 				await ctx.author.send(embed = dmEmbed)
@@ -121,7 +127,7 @@ class Users(commands.Cog):
 	@registerUser.error
 	async def register_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument):
-			await ctx.send('Usage: ".register <Uplay Username>" Eg. ".register F.lanker"')
+			await ctx.send(userSystemMessages['registerError'])
 		if isinstance(error, commands.NoPrivateMessage):
 			pass
 
@@ -172,7 +178,7 @@ class Users(commands.Cog):
 		#Extract Data from collection
 
 		if mydoc is None:
-			await ctx.send(embed = discord.Embed(description = "User not found"))
+			await ctx.send(embed = discord.Embed(description = userSystemMessages["User not found"]))
 			return None
 
 		#if not None
@@ -180,7 +186,7 @@ class Users(commands.Cog):
 		#Get user info
 		userDiscID = mydoc["discID"]
 		userDiscName = mydoc["discName"]
-		userUplayID = mydoc["uplayIGN"]
+		userUplayID = mydoc["ign"]
 		userELO = mydoc["ELO"]
 		userWins = mydoc["wins"]
 		userLoss = mydoc["loss"]
@@ -192,7 +198,7 @@ class Users(commands.Cog):
 			userWinPercent = "N/A"
 		userWinDiff = userWins - userLoss
 
-		statString = f"```yaml\nWins: {userWins}\nMatches played: {userTotalMatches}\nWin Percentage: {userWinPercent}\n```"
+		statString = f"```yaml\n{userSystemMessages['Wins']}: {userWins}\n{userSystemMessages['Matches played']}: {userTotalMatches}\n{userSystemMessages['Win Percentage']}: {userWinPercent}\n```"
 
 
 		userJoinDate = mydoc["dateRegistered"]
@@ -233,11 +239,11 @@ class Users(commands.Cog):
 
 			WLString = WLString.rstrip("-")[::-1]
 		else:
-			WLString = "No matches found"
+			WLString = userSystemMessages["No matches found"]
 
 
 		myEmbed = discord.Embed(title = f"{userDiscName}", color = embedSideColor)
-		myEmbed.add_field(name = "Uplay ID: ", value = userUplayID, inline = False)
+		myEmbed.add_field(name = "game ID: ", value = userUplayID, inline = False)
 		myEmbed.add_field(name = "Rank: ", value = globalRank, inline = True)
 		myEmbed.add_field(name = "ELO: ", value = userELO, inline = True)
 		myEmbed.add_field(name = "Win/Loss stats: ", value = statString, inline = False)
@@ -252,7 +258,7 @@ class Users(commands.Cog):
 		if isinstance(error, commands.NoPrivateMessage):
 			pass		#To prevent clogging up terminal
 		elif isinstance(error, commands.MissingRequiredArgument):
-			await ctx.send("Usage: .info <@DiscordID> | Eg.: .info @Carl\nOptional uplayID search mode: .info <uplayID> uplay| Eg.: .info Pengu.G2 uplay")
+			await ctx.send(userSystemMessages['userInfoError'])
 		else:
 			print(error)
 
@@ -272,7 +278,7 @@ class Users(commands.Cog):
 			tempDict = 	{	"discID": discID ,									#
 							"discName" : f"{str(member)}" ,						#
 							"dateRegistered" : datetime.datetime.now(),			#
-							"uplayIGN" : uplayIGN,								#
+							"ign" : uplayIGN,								#
 							"ELO" : startingELO,								#
 						}
 			try:
@@ -280,14 +286,14 @@ class Users(commands.Cog):
 				await ctx.send(f"\N{White Heavy Check Mark} {member} succesfully force-registered!")
 				print(f"{member} succesfully registered. ID: {x.inserted_id}, uplay: {uplayIGN}, ELO:{startingELO}")
 			except:
-				await ctx.send("Error: Contact admin")			#Let's pray this doesn't happen
+				await ctx.send("Error: Contact admin - 114")			#Let's pray this doesn't happen
 				print(f"Failed to register user: {member}")
 
 
 	@forceRegister.error
 	async def forceRegister_error(self, ctx, error):
 		if isinstance(error, commands.MissingRequiredArgument):
-			await ctx.send('Usage: !forceregister <@discordID> <uplayID> <startingELO>')
+			await ctx.send('Usage: !forceregister <@discordID> <game ID> <startingELO>')
 
 
 	#Updates Uplay ID
@@ -298,11 +304,11 @@ class Users(commands.Cog):
 		authorID = ctx.author.id
 
 		myQuery = {"discID" : authorID}					#To query database based on author's discord ID
-		targetUpdate = {"uplayIGN" : newUplayID}		#Preps dictionary for MongoDB update
+		targetUpdate = {"ign" : newUplayID}		#Preps dictionary for MongoDB update
 
 		myDoc = dbCol.find_one(myQuery)					#
 		if myDoc is None:
-			myEmbed = discord.Embed(description = "Please register first using `.register`", color = embedSideColor)
+			myEmbed = discord.Embed(description = userSystemMessages["pleaseRegisterFirst"] , color = embedSideColor)
 			await ctx.send(embed = myEmbed)
 			return None
 
@@ -312,9 +318,9 @@ class Users(commands.Cog):
 
 
 		#Creates embed object
-		myEmbed = discord.Embed(title = "Changed Uplay ID", color = embedSideColor)
-		myEmbed.add_field(name = "Previous Uplay ID:", value = myDoc["uplayIGN"], inline = False)
-		myEmbed.add_field(name = "Requested Uplay ID:", value = newUplayID, inline = False)
+		myEmbed = discord.Embed(title = userSystemMessages["Changed Game ID"], color = embedSideColor)
+		myEmbed.add_field(name = userSystemMessages["Previous Game ID:"], value = myDoc["ign"], inline = False)
+		myEmbed.add_field(name = userSystemMessages["Request Game ID"], value = newUplayID, inline = False)
 		await ctx.send(embed = myEmbed)
 
 def getUserRank(discID):
