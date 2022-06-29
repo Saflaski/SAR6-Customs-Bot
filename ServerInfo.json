@@ -3,7 +3,7 @@
   "MongoDB usersCol" : "usersCol",
   "MongoDB matchesCol" : "matchesCol",
 
-  "serverName" : "The server name",
+  "serverName" : "Unimportant server name",
   "guildID" : 990715393620475924,
   "vcCategoryID" : 990715394237034517,
   "TextChannels" : { 
@@ -143,6 +143,8 @@
     "thumbnailURL" : "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png",
     "footerURL" : "https://media.discordapp.net/attachments/822432464290054174/832871738030817290/sar6c1.png"
   },
+
+  "themecolor" : "0xE942F5",
   
   "lobby_settings" : "https://discord.com/channels/302692676099112960/825059186592710726/834730773210333184",
 

@@ -30,7 +30,7 @@ userSystemMessages = discServInfo["messages"]["userSystemMessages"]
 
 #Global Variables
 baseELO = 2000
-embedSideColor = 0xFAAF41
+embedSideColor = int(discServInfo["themecolor"], 16)
 embedTitleColor = 0xF64C72
 footerText = discServInfo["messages"]["queueSystemMessages"]["footerTextHelp"]
 thumbnailURL= discServInfo["logoURLs"]["thumbnailURL"]
@@ -119,10 +119,12 @@ class Users(commands.Cog):
                                                 color = embedSideColor)
 				dmEmbed.set_thumbnail(url = thumbnailURL)
 				await ctx.author.send(embed = dmEmbed)
+				await ctx.invoke(self.getUserInfo, ctx.author)
 
-			except:
+			except Exception as e:
 				await ctx.send("Error 103: Contact Admin")
-				print(f"Failed to register user: {author}")
+				print(f"Failed to register user: {author}.\nError:{e}")
+			
 
 	@registerUser.error
 	async def register_error(self, ctx, error):
@@ -137,7 +139,7 @@ class Users(commands.Cog):
 	@commands.guild_only()
 	@checkCorrectChannel(channelIDList = completeChannelList)
 	async def getUserInfo(self, ctx, givenUser : discord.Member = None):
-
+		
 		print(f"{ctx.author} used info")
 
 		"""
@@ -210,7 +212,7 @@ class Users(commands.Cog):
 		#Get match history info
 		matchHistoryDoc = matchesCol.find({"matchList" : userDiscID}).sort([("_id", -1)]).limit(10)
 
-		if matchHistoryDoc.count() != 0:
+		if matchesCol.count_documents({"matchList" : userDiscID}) != 0:
 			WLString = ""
 			for match in matchHistoryDoc:
 				matchScore = match["score"]

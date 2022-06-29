@@ -38,7 +38,7 @@ discordMessageTexts = discServInfo["messages"]
 queueSystemMessages = discordMessageTexts["queueSystemMessages"]
 
 #Global Variables
-embedSideColor = 0xFAAF41
+embedSideColor = int(discServInfo["themecolor"], 16)
 embedTitleColor = 0xF64C72
 footerText = queueSystemMessages["footerTextHelp"]
 JSLfooterText = queueSystemMessages["queueCommandHelpText"]
@@ -180,11 +180,8 @@ class QueueSystem(commands.Cog):
 		member = ctx.author
 		discID = member.id
 		print("Used queue command")
-
-		userDoc = dbCol.find({"discID" : discID})
-		print("Searched mongoDB")
-		if userDoc.count() == 0:
-			print("We here 1.2")
+	
+		if dbCol.count_documents({"discID" : discID}) == 0:
 			queueEmbed = discord.Embed(description = queueSystemMessages["pleaseRegisterFirst"], color = embedSideColor)
 			await ctx.send(embed = queueEmbed)
 			print(f"Unregistered user {member} tried to join Global Queue")
@@ -192,20 +189,16 @@ class QueueSystem(commands.Cog):
 			return None
 		
 		elif discID in GQL:
-			print("We here 1.5")
-			queueEmbed = discord.Embed(description = queueSystemMessages["youAreAlreadyInQueue"], color = embedSideColor)
-			alrQueueMsg = await ctx.send(content = f"<@{discID}>", embed = queueEmbed)
-			#await alrQueueMsg.delete(delay = 2)
-			#await ctx.message.delete(delay = 2)
 			
+			queueEmbed = discord.Embed(description = queueSystemMessages["youAreAlreadyInQueue"], color = embedSideColor)
+			alrQueueMsg = await ctx.send(content = f"<@{discID}>", embed = queueEmbed)			
 			return None
-		print("We here")
+		
 		for match in PIOM:
 			if discID in PIOM[match]:
 				queueEmbed = discord.Embed(description = queueSystemMessages["youAreAlreadyInMatch"], color = embedSideColor)
 				await ctx.send(embed = queueEmbed)
 				return None
-		print("We here 2")
 		GQL.append(discID)
 		print(f"{member} has joined the Global Queue")
 		STAT_JQ += 1
@@ -535,7 +528,7 @@ class QueueSystem(commands.Cog):
 		myEmbed = discord.Embed(title = queueSystemMessages["ongoingMatches"], color = embedSideColor)
 
 		counter = 1
-		if matchDocs.count() != 0:
+		if matchesCol.count_documents({"score": "0-0"}) != 0:
 			for match in matchDocs:
 				matchID = match["MID"]
 				try:
@@ -673,7 +666,7 @@ class QueueSystem(commands.Cog):
 		#Update Match Score in Database
 
 		if matchDoc is not None:
-			matchesCol.update({"MID" : matchID},{"$set" : {"score" : "C-C"}})
+			matchesCol.update_one({"MID" : matchID},{"$set" : {"score" : "C-C"}})
 			fString += "Updated score to C-C. "
 
 		#Remove the matchID from PIOM
@@ -884,7 +877,7 @@ class QueueSystem(commands.Cog):
 
 		#Update Match Score in Database
 		match_score = str(f"{teamResult[1]}-{teamResult[2]}")
-		matchesCol.update({"MID" : MID},{"$set" : {"score" : match_score}})
+		matchesCol.update_one({"MID" : MID},{"$set" : {"score" : match_score}})
 		print(f"Updated DB for score: {match_score}")
 		fString += "Updated Database for Score. "
 
@@ -1092,7 +1085,7 @@ class QueueSystem(commands.Cog):
 				queryListLost = []
 
 				#Update Match Score in Database
-				matchesCol.update({"MID" : MID},{"$set" : {"score" : DB_score}})
+				matchesCol.update_one({"MID" : MID},{"$set" : {"score" : DB_score}})
 				print(f"Updated DB for score: {DB_score}")
 
 				#Update Player Scores and Win/Loss in Database

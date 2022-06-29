@@ -30,7 +30,7 @@ baseELO = 2000
 autoLBrefresh = 20
 
 #For embed messages
-embedSideColor = 0xFAAF41
+embedSideColor = int(discServInfo["themecolor"], 16)
 footerText = discordMessageText["leaderboardMessages"]["footerText"]
 thumbnailURL= discServInfo["logoURLs"]["thumbnailURL"]
 footerIcoURL = discServInfo["logoURLs"]["footerURL"]
